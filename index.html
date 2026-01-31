@@ -8,9 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-    
     <style>
-        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
@@ -20,6 +19,9 @@
         .loader { border-top-color: #4f46e5; animation: spinner 1s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         body.modal-open { overflow: hidden; }
+        /* 横スクロール隠し */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
@@ -35,22 +37,13 @@
                 <transition name="slide-up">
                     <div v-if="showLoginModal" class="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl overflow-hidden">
                         <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold text-slate-800">管理者ログイン</h3>
-                            <button @click="closeLogin" class="text-slate-400 hover:text-slate-600 bg-slate-100 p-2 rounded-full">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                            </button>
+                            <h3 class="text-xl font-bold text-slate-800">ログイン</h3>
+                            <button @click="closeLogin" class="text-slate-400 hover:text-slate-600 bg-slate-100 p-2 rounded-full">✕</button>
                         </div>
                         <div class="space-y-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1">担当教室名</label>
-                                <input v-model="loginForm.roomName" type="text" placeholder="例: 3-A" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1">パスワード</label>
-                                <input v-model="loginForm.password" type="password" placeholder="••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none text-lg">
-                            </div>
-                            <button @click="doLogin" :disabled="isLoggingIn" 
-                                class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-indigo-700 active:scale-[0.98] transition disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                            <div><label class="block text-xs font-bold text-slate-500 mb-1">ユーザー名 (教室名 or Admin)</label><input v-model="loginForm.roomName" type="text" placeholder="例: 3-A" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"></div>
+                            <div><label class="block text-xs font-bold text-slate-500 mb-1">パスワード</label><input v-model="loginForm.password" type="password" placeholder="••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none text-lg"></div>
+                            <button @click="doLogin" :disabled="isLoggingIn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-indigo-700 active:scale-[0.98] transition disabled:opacity-70 flex justify-center items-center gap-2">
                                 <span v-if="isLoggingIn" class="loader h-5 w-5 border-2 border-t-2 border-white/50 border-t-white rounded-full"></span>
                                 <span v-else>認証して開始</span>
                             </button>
@@ -67,155 +60,166 @@
         <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50">
             <div class="max-w-6xl mx-auto px-4 py-2 flex justify-between items-center">
                 <div class="flex items-center gap-2" @click="fetchData(true)">
-                    <div class="bg-slate-800 text-white p-1.5 rounded-lg">
+                    <div class="p-1.5 rounded-lg text-white" :class="isSuperAdmin ? 'bg-rose-600' : 'bg-slate-800'">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12.378 1.602a.75.75 0 00-.756 0L3 6.632l9 5.25 9-5.25-8.622-5.03zM21.75 7.93l-9 5.25v9l8.628-5.032a.75.75 0 00.372-.648V7.93zM11.25 22.18v-9l-9-5.25v8.57a.75.75 0 00.372.648l8.628 5.033z" /></svg>
                     </div>
                     <div>
                         <h1 class="font-bold text-slate-800 leading-none tracking-tight text-lg">S.K.I.D</h1>
-                        <p class="text-[10px] text-slate-400 font-bold tracking-widest">COMMAND CENTER</p>
+                        <p class="text-[10px] font-bold tracking-widest uppercase" :class="isSuperAdmin ? 'text-rose-600' : 'text-slate-400'">
+                            {{ isSuperAdmin ? 'Admin Mode' : (isAdmin ? 'Login: ' + currentRoomName : 'Guest View') }}
+                        </p>
                     </div>
                 </div>
-                
                 <div class="flex gap-2">
-                    <button @click="fetchData(true)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    <button @click="fetchData(true)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                         更新
                     </button>
-
-                    <button @click="openLogin" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all border" 
-                        :class="isAdmin ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'">
-                        <span class="w-2 h-2 rounded-full" :class="isAdmin ? 'bg-indigo-500 animate-pulse' : 'bg-slate-300'"></span>
-                        {{ isAdmin ? currentRoomName : 'Guest' }}
+                    <button @click="openLogin" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border" :class="isAdmin ? (isSuperAdmin ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200') : 'bg-white text-slate-500 border-slate-200'">
+                        <span class="w-2 h-2 rounded-full" :class="isAdmin ? 'bg-green-500 animate-pulse' : 'bg-slate-300'"></span>
+                        {{ isAdmin ? 'Logout' : 'Login' }}
                     </button>
                 </div>
             </div>
 
-            <div v-if="currentTab === 'view'" class="bg-slate-50 border-b border-slate-200 px-4 py-2 overflow-x-auto no-scrollbar">
-                <div class="max-w-6xl mx-auto flex gap-2 min-w-max">
-                    <input v-model="searchQuery" type="text" placeholder="部屋名検索..." class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-32">
-                    
-                    <button @click="filterStatus = 'all'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border"
-                        :class="filterStatus === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200'">
-                        全て
-                    </button>
-                    <button @click="filterStatus = 'deficit'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border flex items-center gap-1"
-                        :class="filterStatus === 'deficit' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-rose-200'">
-                        <span v-if="filterStatus !== 'deficit'" class="w-2 h-2 bg-rose-500 rounded-full"></span> 不足のみ
-                    </button>
-                    <button @click="filterStatus = 'surplus'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border"
-                        :class="filterStatus === 'surplus' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-600 border-amber-200'">
-                        余剰のみ
-                    </button>
-                </div>
-            </div>
-            
-            <div v-if="isAdmin" class="flex max-w-6xl mx-auto px-4 gap-6 text-sm border-t border-slate-100">
-                <button @click="currentTab = 'view'" class="flex-1 py-2 border-b-2 font-bold text-xs uppercase tracking-wider transition-colors" :class="currentTab === 'view' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'">Dashboard</button>
-                <button @click="currentTab = 'move'" class="flex-1 py-2 border-b-2 font-bold text-xs uppercase tracking-wider transition-colors" :class="currentTab === 'move' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'">Action</button>
+            <div class="flex max-w-6xl mx-auto px-4 gap-6 text-sm border-t border-slate-100 bg-white overflow-x-auto">
+                <button @click="currentTab = 'view'" class="flex-1 py-3 border-b-2 font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-colors" :class="currentTab === 'view' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'">Dashboard</button>
+                <button @click="currentTab = 'logs'" class="flex-1 py-3 border-b-2 font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-colors" :class="currentTab === 'logs' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'">Logs</button>
+                <button v-if="isAdmin && !isSuperAdmin" @click="currentTab = 'move'" class="flex-1 py-3 border-b-2 font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-colors" :class="currentTab === 'move' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400'">Action</button>
+                <button v-if="isSuperAdmin" @click="currentTab = 'admin'" class="flex-1 py-3 border-b-2 font-bold text-xs uppercase tracking-wider whitespace-nowrap transition-colors" :class="currentTab === 'admin' ? 'border-rose-600 text-rose-600' : 'border-transparent text-slate-400'">Admin Edit</button>
             </div>
         </header>
 
         <main class="flex-1 max-w-6xl mx-auto w-full p-4">
             
-            <div v-if="currentTab === 'view'" class="space-y-8">
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+            <div v-if="currentTab === 'view'" class="space-y-6">
+                <div class="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+                    <input v-model="searchQuery" type="text" placeholder="部屋名検索..." class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-32 shrink-0">
+                    <button @click="filterStatus = 'all'" class="px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0" :class="filterStatus === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200'">全て</button>
+                    <button @click="filterStatus = 'deficit'" class="px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0 flex items-center gap-1" :class="filterStatus === 'deficit' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-rose-200'"><span v-if="filterStatus !== 'deficit'" class="w-2 h-2 bg-rose-500 rounded-full"></span>不足のみ</button>
+                    <button @click="filterStatus = 'surplus'" class="px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0" :class="filterStatus === 'surplus' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-600 border-amber-200'">余剰のみ</button>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                        School Overview
+                        学校全体の総数 (Grand Total)
                     </h2>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div v-for="(sum, name) in grandTotal" :key="name" class="bg-slate-50 rounded-xl p-3 border border-slate-100">
                             <div class="flex justify-between items-end mb-1">
                                 <span class="text-sm font-bold text-slate-600">{{ name }}</span>
                                 <span class="text-xs font-bold" :class="sum.diff >= 0 ? 'text-blue-500' : 'text-rose-500'">{{ sum.diff > 0 ? '+' : ''}}{{ sum.diff }}</span>
                             </div>
-                            <div class="w-full bg-slate-200 rounded-full h-2 mb-2 overflow-hidden">
-                                <div class="h-2 rounded-full transition-all duration-1000" 
-                                     :class="sum.percent >= 100 ? 'bg-emerald-500' : (sum.percent > 50 ? 'bg-blue-500' : 'bg-rose-500')"
-                                     :style="{ width: Math.min(sum.percent, 100) + '%' }"></div>
-                            </div>
-                            <div class="flex justify-between text-xs text-slate-400 font-mono">
-                                <span>{{ sum.current }}</span>
-                                <span>Goal: {{ sum.target }}</span>
-                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-1.5 mb-2 overflow-hidden"><div class="h-1.5 rounded-full transition-all" :class="sum.percent >= 100 ? 'bg-emerald-500' : (sum.percent > 50 ? 'bg-blue-500' : 'bg-rose-500')" :style="{ width: Math.min(sum.percent, 100) + '%' }"></div></div>
+                            <div class="flex justify-between text-[10px] text-slate-400 font-mono"><span>{{ sum.current }}</span><span>Goal: {{ sum.target }}</span></div>
                         </div>
                     </div>
                 </div>
 
                 <div v-for="(floorRooms, floor) in filteredGroupedRooms" :key="floor">
-                    <div class="flex items-center gap-3 mb-4 sticky top-[108px] pt-2 pb-2 bg-[#f1f5f9] z-10">
-                        <span class="bg-slate-700 text-white text-xs font-black px-3 py-1 rounded-md shadow-sm">{{ floor }}</span>
-                        <div class="h-px bg-slate-300 flex-1"></div>
-                    </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-                         <div v-for="(sum, name) in getFloorSummary(floorRooms)" :key="name" 
-                              class="px-3 py-2 rounded-lg border text-center text-xs flex justify-between items-center bg-white border-slate-200 shadow-sm">
-                            <span class="font-bold text-slate-500">{{ name }}</span>
-                            <span class="font-bold" :class="sum.diff < 0 ? 'text-rose-600' : 'text-emerald-600'">
-                                {{ sum.diff > 0 ? '+' : ''}}{{ sum.diff }}
-                            </span>
+                    <div class="flex items-center gap-3 mb-3 bg-[#f8fafc] sticky top-0 z-10 py-2 border-b border-slate-200">
+                        <span class="bg-slate-700 text-white text-xs font-black px-3 py-1 rounded-md">{{ floor }}</span>
+                        <div class="flex gap-2 overflow-x-auto no-scrollbar">
+                            <div v-for="(sum, name) in getFloorSummary(floorRooms)" :key="name" class="text-[10px] font-bold px-2 py-0.5 rounded border bg-white whitespace-nowrap flex items-center gap-1">
+                                <span class="text-slate-500">{{ name }}</span>
+                                <span :class="sum.diff < 0 ? 'text-rose-600' : 'text-emerald-600'">{{ sum.diff > 0 ? '+' : ''}}{{ sum.diff }}</span>
+                            </div>
                         </div>
                     </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <div v-for="room in floorRooms" :key="room.id" 
-                             class="bg-white rounded-xl border p-4 relative overflow-hidden transition-all hover:shadow-md"
-                             :class="isRoomComplete(room) ? 'border-slate-200 opacity-90' : 'border-slate-300 shadow-sm'">
-                            <div class="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 class="font-bold text-base text-slate-800 leading-tight">{{ room.name }}</h3>
-                                    <p class="text-[10px] font-mono text-slate-400 mt-0.5">{{ room.id }}</p>
-                                </div>
-                                <div v-if="isRoomComplete(room)" class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd"/></svg>
-                                    OK
+                        <div v-for="room in floorRooms" :key="room.id" class="bg-white rounded-xl border p-4 shadow-sm" :class="isRoomComplete(room) ? 'border-slate-200 opacity-80' : 'border-slate-300'">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="font-bold text-base text-slate-800">{{ room.name }}</h3>
+                                <div v-if="isRoomComplete(room)" class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">OK</div>
+                            </div>
+                            <div class="space-y-1.5">
+                                <div v-for="(info, itemName) in room.items" :key="itemName" class="flex justify-between items-center px-2 py-1.5 rounded bg-slate-50 text-sm border border-slate-100" :class="getItemColorClass(info.diff)">
+                                    <span class="font-bold text-xs text-slate-600">{{ itemName }}</span>
+                                    <div class="flex items-center gap-2"><span class="font-mono font-bold">{{ info.current }}</span><span class="text-[10px] opacity-50">/{{ info.target }}</span><span v-if="info.diff !== 0" class="text-[10px] font-bold px-1 rounded ml-1 bg-white/80 border">{{ info.diff > 0 ? '+' : ''}}{{ info.diff }}</span></div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="Object.keys(filteredGroupedRooms).length === 0" class="text-center py-20 text-slate-400 font-bold">該当なし</div>
+            </div>
+
+            <div v-else-if="currentTab === 'logs'" class="max-w-2xl mx-auto pb-20">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg"><span class="text-2xl">📜</span> 移動ログ・履歴</h3>
+                <div class="space-y-3">
+                    <div v-for="(log, idx) in logs" :key="idx" class="bg-white rounded-xl border p-4 shadow-sm relative overflow-hidden" :class="log.status === '取り消し' ? 'opacity-50 grayscale bg-slate-50 border-slate-200' : 'border-slate-200'">
+                        <div v-if="log.status === '取り消し'" class="absolute right-0 top-0 bg-slate-200 text-slate-500 text-[10px] px-2 py-1 font-bold rounded-bl">CANCELLED</div>
+                        
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex-1">
+                                <div class="font-bold text-base text-slate-800 flex flex-wrap items-center gap-2">
+                                    <span class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded text-sm">{{ log.from }}</span>
+                                    <span class="text-slate-300">➜</span>
+                                    <span class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded text-sm">{{ log.to }}</span>
+                                </div>
+                                <div class="mt-1.5 text-sm font-bold text-slate-600 bg-slate-50 inline-block px-2 py-1 rounded border border-slate-100">
+                                    📦 {{ log.detail }}
+                                </div>
+                                <div class="mt-2 text-xs text-slate-400 flex items-center gap-2">
+                                    <span class="font-mono">{{ log.time }}</span>
+                                    <span>•</span>
+                                    <span>担当: {{ log.user }}</span>
+                                    <span v-if="log.status === '管理者操作'" class="text-rose-500 font-bold">(Admin Edit)</span>
+                                </div>
+                            </div>
+                            
+                            <button v-if="log.status !== '取り消し' && log.status !== '管理者操作' && (isSuperAdmin || (isAdmin && currentRoomName === log.user))" 
+                                @click="cancelLog(log)" 
+                                class="shrink-0 text-xs bg-white border border-rose-200 text-rose-600 px-3 py-2 rounded-lg font-bold hover:bg-rose-50 active:scale-95 transition flex flex-col items-center gap-1">
+                                <span>↩</span>
+                                <span>取消</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div v-if="logs.length === 0" class="text-center py-10 text-slate-400">ログなし</div>
+                </div>
+            </div>
+
+            <div v-else-if="currentTab === 'admin'" class="space-y-6">
+                <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 flex gap-3 text-rose-800 text-sm font-bold">
+                    <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    <div>
+                        <p>管理者編集モード</p>
+                        <p class="text-xs font-normal opacity-80 mt-1">ここで変更した内容は「管理者操作」としてログに残ります。</p>
+                    </div>
+                </div>
+                <div v-for="(floorRooms, floor) in filteredGroupedRooms" :key="floor" class="mb-8">
+                    <h3 class="font-bold text-slate-500 text-xs uppercase tracking-wider mb-2 border-b pb-1">{{ floor }}</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div v-for="room in floorRooms" :key="room.id" class="bg-white rounded-xl border border-slate-300 p-4 shadow-sm">
+                            <div class="flex justify-between items-center mb-3">
+                                <h4 class="font-bold">{{ room.name }}</h4>
+                                <button @click="updateRoomDirectly(room)" class="bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-black">保存</button>
+                            </div>
                             <div class="space-y-2">
-                                <div v-for="(info, itemName) in room.items" :key="itemName" 
-                                     class="flex justify-between items-center px-3 py-1.5 rounded-md text-sm border"
-                                     :class="getItemColorClass(info.diff)">
-                                    <span class="font-bold text-xs opacity-80">{{ itemName }}</span>
-                                    <div class="flex items-center gap-2">
-                                        <div class="flex items-baseline gap-1">
-                                            <span class="font-mono font-bold text-base">{{ info.current }}</span>
-                                            <span class="text-[10px] opacity-60">/{{ info.target }}</span>
-                                        </div>
-                                        <span v-if="info.diff !== 0" class="text-[10px] font-bold px-1.5 py-0.5 rounded ml-1 bg-white/60 min-w-[24px] text-center">
-                                            {{ info.diff > 0 ? '+' : ''}}{{ info.diff }}
-                                        </span>
+                                <div v-for="(info, itemName) in room.items" :key="itemName" class="flex items-center gap-2 text-sm">
+                                    <span class="w-20 font-bold text-slate-600 truncate">{{ itemName }}</span>
+                                    <div class="flex-1 flex items-center gap-2">
+                                        <div class="flex items-center bg-slate-50 border rounded-lg px-2 py-1"><span class="text-[10px] text-slate-400 mr-1">現</span><input type="number" v-model="adminForm[room.id][itemName]" class="w-12 bg-transparent font-bold text-slate-800 outline-none text-right"></div>
+                                        <div class="flex items-center bg-slate-50 border rounded-lg px-2 py-1"><span class="text-[10px] text-slate-400 mr-1">目</span><input type="number" v-model="adminForm[room.id][itemName + '_TARGET']" class="w-12 bg-transparent font-bold text-slate-400 outline-none text-right"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div v-if="Object.keys(filteredGroupedRooms).length === 0" class="text-center py-20 text-slate-400">
-                    <p class="font-bold">該当なし</p>
-                </div>
             </div>
 
             <div v-else-if="currentTab === 'move'" class="max-w-xl mx-auto pb-20">
                 <div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-                    <h3 class="font-bold text-slate-800 mb-6 text-lg flex items-center gap-2">
-                        <span class="bg-slate-100 p-1.5 rounded-lg text-xl">🚚</span> 新規移動申請
-                    </h3>
+                    <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+                    <h3 class="font-bold text-slate-800 mb-6 text-lg flex items-center gap-2"><span class="bg-slate-100 p-1.5 rounded-lg text-xl">🚚</span> 新規移動申請</h3>
                     <div class="space-y-6">
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 mb-1.5">FROM (移動元)</label>
-                                <select v-model="form.fromId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                                    <option value="" disabled>選択...</option>
-                                    <option v-for="r in sortedRooms" :key="r.id" :value="r.id">{{ r.name }}</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-400 mb-1.5">TO (移動先)</label>
-                                <select v-model="form.toId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                                    <option value="" disabled>選択...</option>
-                                    <option v-for="r in sortedRooms" :key="r.id" :value="r.id">{{ r.name }}</option>
-                                </select>
-                            </div>
+                            <div><label class="block text-xs font-bold text-slate-400 mb-1.5">FROM</label><select v-model="form.fromId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold outline-none"><option value="" disabled>選択...</option><option v-for="r in sortedRooms" :key="r.id" :value="r.id">{{ r.name }}</option></select></div>
+                            <div><label class="block text-xs font-bold text-slate-400 mb-1.5">TO</label><select v-model="form.toId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold outline-none"><option value="" disabled>選択...</option><option v-for="r in sortedRooms" :key="r.id" :value="r.id">{{ r.name }}</option></select></div>
                         </div>
                         <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
                             <label class="block text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Items</label>
@@ -228,41 +232,24 @@
                                 </div>
                             </div>
                         </div>
-                        <button @click="addToCart" :disabled="!isValid" 
-                            class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                            <span>カートに追加</span>
-                        </button>
+                        <button @click="addToCart" :disabled="!isValid" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"><span>カートに追加</span></button>
                     </div>
                 </div>
             </div>
         </main>
 
         <transition name="slide-up">
-            <div v-if="cart.length > 0 && isAdmin" class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-50 p-4 pb-6 sm:pb-4">
+            <div v-if="cart.length > 0 && isAdmin && !isSuperAdmin" class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-50 p-4 pb-6 sm:pb-4">
                 <div class="max-w-xl mx-auto flex items-center justify-between gap-4">
                     <div class="flex-1 overflow-hidden" @click="showCartDetails = !showCartDetails">
                         <div class="text-xs font-bold text-slate-400 mb-0.5">申請リスト ({{ cart.length }}件)</div>
-                        <div class="text-sm font-bold text-slate-800 truncate">
-                            {{ getRoomName(cart[cart.length-1].fromId) }} → {{ getRoomName(cart[cart.length-1].toId) }}
-                            <span class="text-slate-400 font-normal">など</span>
-                        </div>
+                        <div class="text-sm font-bold text-slate-800 truncate">{{ getRoomName(cart[cart.length-1].fromId) }} → {{ getRoomName(cart[cart.length-1].toId) }}</div>
                     </div>
-                    <button @click="submit" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md shadow-indigo-200 active:scale-95 transition">
-                        送信する
-                    </button>
+                    <button @click="submit" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md active:scale-95 transition">送信する</button>
                 </div>
                 <div v-if="showCartDetails" class="max-w-xl mx-auto mt-4 border-t border-slate-100 pt-4 max-h-60 overflow-y-auto custom-scrollbar">
                     <div v-for="(item, idx) in cart" :key="idx" class="flex justify-between items-center bg-slate-50 p-3 rounded-lg mb-2 text-sm">
-                        <div>
-                            <span class="font-bold">{{ getRoomName(item.fromId) }}</span>
-                            <span class="text-slate-400 mx-1">→</span>
-                            <span class="font-bold">{{ getRoomName(item.toId) }}</span>
-                            <div class="text-xs text-slate-500 mt-1 flex gap-2">
-                                <span v-for="(qty, name) in item.moves" v-show="qty > 0" class="bg-white border border-slate-200 px-1.5 rounded">
-                                    {{ name }}: {{ qty }}
-                                </span>
-                            </div>
-                        </div>
+                        <div><span class="font-bold">{{ getRoomName(item.fromId) }}</span> → <span class="font-bold">{{ getRoomName(item.toId) }}</span><div class="text-xs text-slate-500 mt-1 flex gap-2"><span v-for="(qty, name) in item.moves" v-show="qty > 0" class="bg-white border border-slate-200 px-1.5 rounded">{{ name }}: {{ qty }}</span></div></div>
                         <button @click="cart.splice(idx, 1); if(cart.length===0) showCartDetails=false;" class="text-rose-500 p-2">✕</button>
                     </div>
                 </div>
@@ -272,29 +259,31 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted, watch } = Vue;
-
+        const { createApp, ref, computed, onMounted } = Vue;
         createApp({
             setup() {
                 // ↓↓↓ GAS URL ↓↓↓
-                const API_URL = 'https://script.google.com/macros/s/AKfycbwnElrgylRUcV1k27fotE2y6KyvBMVAn2wZA_OcI8jawnqNfLFlZBZ73LpXtcFwIpiY/exec';
+                const API_URL = 'https://script.google.com/macros/s/AKfycbyPStiVX3wijbTgcHrWlt20xxs_BPp5r_vA7qyxw5VVv1GMcN49Tv6uF6grMMEEMlCa/exec';
                 
                 const rooms = ref([]);
                 const availableItems = ref([]);
+                const logs = ref([]);
                 const globalLoading = ref(true);
                 const loadingMessage = ref('INITIALIZING...');
                 const notice = ref('');
                 
                 const isAdmin = ref(false);
+                const isSuperAdmin = ref(false);
                 const showLoginModal = ref(false);
                 const loginForm = ref({ roomName: '', password: '' });
-                const isLoggingIn = ref(false); // ログイン処理中フラグ
+                const isLoggingIn = ref(false);
                 const currentRoomName = ref('');
                 const password = ref('');
+                const adminForm = ref({});
                 
                 const currentTab = ref('view');
                 const searchQuery = ref('');
-                const filterStatus = ref('all');
+                const filterStatus = ref('all'); // all, deficit, surplus
                 
                 const cart = ref([]);
                 const showCartDetails = ref(false);
@@ -303,147 +292,106 @@
                 // Computed
                 const filteredRooms = computed(() => {
                     let res = rooms.value;
-                    if (searchQuery.value) {
-                        const q = searchQuery.value.toLowerCase();
-                        res = res.filter(r => r.name.toLowerCase().includes(q) || String(r.id).toLowerCase().includes(q));
-                    }
-                    if (filterStatus.value === 'deficit') {
-                        res = res.filter(r => r.items && Object.values(r.items).some(i => i.diff < 0));
-                    } else if (filterStatus.value === 'surplus') {
-                        res = res.filter(r => r.items && Object.values(r.items).some(i => i.diff > 0));
-                    }
+                    if (searchQuery.value) { const q = searchQuery.value.toLowerCase(); res = res.filter(r => r.name.toLowerCase().includes(q) || String(r.id).toLowerCase().includes(q)); }
+                    if (filterStatus.value === 'deficit') res = res.filter(r => r.items && Object.values(r.items).some(i => i.diff < 0));
+                    else if (filterStatus.value === 'surplus') res = res.filter(r => r.items && Object.values(r.items).some(i => i.diff > 0));
                     return res;
                 });
-                const filteredGroupedRooms = computed(() => {
-                    const g = {};
-                    filteredRooms.value.forEach(r => { if (!g[r.floor]) g[r.floor] = []; g[r.floor].push(r); });
-                    return g;
-                });
+                const filteredGroupedRooms = computed(() => { const g = {}; filteredRooms.value.forEach(r => { if (!g[r.floor]) g[r.floor] = []; g[r.floor].push(r); }); return g; });
                 const grandTotal = computed(() => {
-                    const total = {};
-                    availableItems.value.forEach(item => { total[item] = { current: 0, target: 0, diff: 0, percent: 0 }; });
-                    rooms.value.forEach(r => {
-                        if (!r.items) return;
-                        Object.keys(r.items).forEach(k => {
-                            if (total[k]) { total[k].current += r.items[k].current; total[k].target += r.items[k].target; }
-                        });
-                    });
-                    Object.keys(total).forEach(k => {
-                        total[k].diff = total[k].current - total[k].target;
-                        total[k].percent = total[k].target > 0 ? Math.round((total[k].current / total[k].target) * 100) : 0;
-                    });
+                    const total = {}; availableItems.value.forEach(item => { total[item] = { current: 0, target: 0, diff: 0, percent: 0 }; });
+                    rooms.value.forEach(r => { if (!r.items) return; Object.keys(r.items).forEach(k => { if (total[k]) { total[k].current += r.items[k].current; total[k].target += r.items[k].target; } }); });
+                    Object.keys(total).forEach(k => { total[k].diff = total[k].current - total[k].target; total[k].percent = total[k].target > 0 ? Math.round((total[k].current / total[k].target) * 100) : 0; });
                     return total;
                 });
                 const sortedRooms = computed(() => [...rooms.value].sort((a,b)=> String(a.id).localeCompare(String(b.id))));
                 const isValid = computed(() => form.value.fromId && form.value.toId && form.value.fromId !== form.value.toId && Object.values(form.value.moves).some(v => v > 0));
 
-                // Methods
                 const fetchData = async (force = false) => {
-                    if(force) { globalLoading.value = true; loadingMessage.value = 'SYNCING DATA...'; }
+                    if(force) { globalLoading.value = true; loadingMessage.value = 'SYNCING...'; }
                     try {
                         const res = await fetch(API_URL, { method: 'GET', credentials: 'omit', redirect: 'follow' });
-                        if (!res.ok) throw new Error(res.status);
                         const data = await res.json();
                         if (data.status === 'success') {
                             rooms.value = data.data || [];
                             availableItems.value = data.items || [];
+                            logs.value = data.logs || [];
                             notice.value = data.notice || '';
                             availableItems.value.forEach(i => { if(form.value.moves[i] === undefined) form.value.moves[i] = 0; });
+                            // Prepare Admin Form
+                            rooms.value.forEach(r => {
+                                if(!adminForm.value[r.id]) adminForm.value[r.id] = {};
+                                availableItems.value.forEach(i => {
+                                    adminForm.value[r.id][i] = r.items[i].current;
+                                    adminForm.value[r.id][i + '_TARGET'] = r.items[i].target;
+                                });
+                            });
                         }
                     } catch (e) { console.error(e); } finally { globalLoading.value = false; }
                 };
 
                 const openLogin = () => {
-                    if (isAdmin.value) {
-                        Swal.fire({ title: 'ログアウトしますか？', icon: 'question', showCancelButton: true, confirmButtonText: 'はい' }).then((result) => {
-                            if(result.isConfirmed) { isAdmin.value = false; currentRoomName.value = ''; password.value = ''; currentTab.value = 'view'; }
-                        });
-                    } else { showLoginModal.value = true; document.body.classList.add('modal-open'); }
+                    if (isAdmin.value) Swal.fire({ title: 'ログアウト', icon: 'question', showCancelButton: true }).then((r) => { if(r.isConfirmed) { isAdmin.value = false; isSuperAdmin.value = false; currentRoomName.value = ''; password.value = ''; currentTab.value = 'view'; } });
+                    else { showLoginModal.value = true; document.body.classList.add('modal-open'); }
                 };
-                
                 const closeLogin = () => { showLoginModal.value = false; document.body.classList.remove('modal-open'); };
-
-                // ★ログイン処理（GAS通信あり）
                 const doLogin = async () => {
-                    if (!loginForm.value.roomName || !loginForm.value.password) {
-                        Swal.fire('エラー', '入力してください', 'warning'); return;
-                    }
-                    
+                    if (!loginForm.value.roomName || !loginForm.value.password) return;
                     isLoggingIn.value = true;
                     try {
-                        // GASにチェックリクエストを送る
-                        const res = await fetch(API_URL, {
-                            method: 'POST',
-                            credentials: 'omit',
-                            body: JSON.stringify({
-                                action: 'check_auth',
-                                password: loginForm.value.password
-                            })
-                        });
+                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'check_auth', user: loginForm.value.roomName, password: loginForm.value.password }) });
                         const data = await res.json();
-                        
                         if (data.status === 'success') {
-                            // 成功
-                            currentRoomName.value = loginForm.value.roomName;
-                            password.value = loginForm.value.password;
-                            isAdmin.value = true;
-                            currentTab.value = 'move';
+                            currentRoomName.value = loginForm.value.roomName; password.value = loginForm.value.password; isAdmin.value = true; isSuperAdmin.value = data.isAdmin;
+                            currentTab.value = isSuperAdmin.value ? 'admin' : 'move';
                             closeLogin();
-                            window.history.replaceState(null, '', window.location.pathname);
                             Swal.fire({ icon: 'success', title: `Welcome, ${currentRoomName.value}`, timer: 1500, showConfirmButton: false });
-                        } else {
-                            // 失敗
-                            throw new Error(data.message || '認証に失敗しました');
-                        }
-                    } catch (e) {
-                        Swal.fire('認証エラー', e.message, 'error');
-                    } finally {
-                        isLoggingIn.value = false;
-                    }
+                        } else throw new Error(data.message);
+                    } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { isLoggingIn.value = false; }
                 };
 
-                const updateCount = (i, d) => form.value.moves[i] = Math.max(0, (form.value.moves[i] || 0) + d);
-                const addToCart = () => {
-                    cart.value.push(JSON.parse(JSON.stringify(form.value)));
-                    Object.keys(form.value.moves).forEach(k => form.value.moves[k] = 0);
-                    if(navigator.vibrate) navigator.vibrate(50);
-                    Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 2000 }).fire({ icon: 'success', title: 'カートに追加しました' });
-                };
-                
-                const submit = async () => {
-                    if(!(await Swal.fire({ title: '送信確認', text: `${cart.value.length}件送信します`, icon: 'warning', showCancelButton: true, confirmButtonText: '送信', confirmButtonColor: '#4f46e5' })).isConfirmed) return;
-                    globalLoading.value = true; loadingMessage.value = 'TRANSMITTING...';
+                const cancelLog = async (log) => {
+                    if(!(await Swal.fire({ title: '申請を取り消しますか？', text: '備品が元の部屋に戻ります', icon: 'warning', showCancelButton: true, confirmButtonText:'取り消す' })).isConfirmed) return;
+                    globalLoading.value = true;
                     try {
-                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ password: password.value, user: currentRoomName.value, items: cart.value }) });
+                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'cancel', user: currentRoomName.value, password: password.value, targetRowIndex: log.rowIndex }) });
                         const data = await res.json();
-                        if(data.status==='success') { 
-                            Swal.fire({icon:'success', title:'完了', timer: 2000, showConfirmButton:false}); 
-                            cart.value=[]; showCartDetails.value = false; fetchData(true); 
-                        } else throw new Error(data.message);
+                        if(data.status==='success') { Swal.fire('完了', '取り消しました', 'success'); fetchData(true); } else throw new Error(data.message);
                     } catch(e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; }
                 };
 
-                const getFloorSummary = (rs) => {
-                    const s = {};
-                    rs.forEach(r => { if(r.items) Object.keys(r.items).forEach(k => { if(!s[k])s[k]={diff:0}; s[k].diff+=r.items[k].diff; })});
-                    return s;
+                const updateRoomDirectly = async (room) => {
+                    if(!(await Swal.fire({ title: '在庫を直接更新しますか？', text: 'ログには「管理者操作」として記録されます', icon: 'warning', showCancelButton: true })).isConfirmed) return;
+                    globalLoading.value = true;
+                    try {
+                        const inputs = adminForm.value[room.id];
+                        const updates = {}; const targets = {};
+                        availableItems.value.forEach(i => { updates[i] = inputs[i]; targets[i] = inputs[i + '_TARGET']; });
+                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'admin_update', user: currentRoomName.value, password: password.value, roomId: room.id, updates, targets }) });
+                        if((await res.json()).status==='success') { Swal.fire('保存しました', '', 'success'); fetchData(true); }
+                    } catch(e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; }
                 };
+
+                const updateCount = (i, d) => form.value.moves[i] = Math.max(0, (form.value.moves[i] || 0) + d);
+                const addToCart = () => { cart.value.push(JSON.parse(JSON.stringify(form.value))); Object.keys(form.value.moves).forEach(k => form.value.moves[k] = 0); if(navigator.vibrate) navigator.vibrate(50); Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 2000 }).fire({ icon: 'success', title: 'カートに追加' }); };
+                const submit = async () => {
+                    if(!(await Swal.fire({ title: '送信確認', text: `${cart.value.length}件送信します`, icon: 'warning', showCancelButton: true, confirmButtonText: '送信' })).isConfirmed) return;
+                    globalLoading.value = true;
+                    try {
+                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'move', password: password.value, user: currentRoomName.value, items: cart.value }) });
+                        const data = await res.json();
+                        if(data.status==='success') { Swal.fire('完了', '', 'success'); cart.value=[]; fetchData(true); } else throw new Error(data.message);
+                    } catch(e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; }
+                };
+
+                const getFloorSummary = (rs) => { const s = {}; rs.forEach(r => { if(r.items) Object.keys(r.items).forEach(k => { if(!s[k])s[k]={diff:0}; s[k].diff+=r.items[k].diff; })}); return s; };
                 const getItemColorClass = (d) => d < 0 ? 'bg-rose-50 border-rose-200 text-rose-900' : (d > 0 ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-white border-slate-100 text-slate-400');
                 const isRoomComplete = (r) => r.items && Object.values(r.items).every(i => i.diff === 0);
                 const getRoomName = (id) => rooms.value.find(r => r.id === id)?.name || id;
 
-                onMounted(async () => {
-                    await fetchData(true);
-                    const params = new URLSearchParams(window.location.search);
-                    const fromId = params.get('from');
-                    if (fromId) { form.value.fromId = fromId; showLoginModal.value = true; }
-                });
+                onMounted(async () => { await fetchData(true); const params = new URLSearchParams(window.location.search); const fromId = params.get('from'); if (fromId) { form.value.fromId = fromId; showLoginModal.value = true; } });
 
-                return { 
-                    rooms, availableItems, globalLoading, loadingMessage, notice, isAdmin, currentRoomName, showLoginModal, loginForm, isLoggingIn, openLogin, closeLogin, doLogin,
-                    currentTab, cart, showCartDetails, form, filteredGroupedRooms, sortedRooms, isValid, searchQuery, filterStatus, grandTotal,
-                    fetchData, updateCount, addToCart, submit, getRoomName, getFloorSummary, getItemColorClass, isRoomComplete 
-                };
+                return { rooms, availableItems, logs, globalLoading, loadingMessage, notice, isAdmin, isSuperAdmin, showLoginModal, loginForm, isLoggingIn, adminForm, openLogin, closeLogin, doLogin, cancelLog, updateRoomDirectly, currentTab, cart, showCartDetails, form, filteredGroupedRooms, sortedRooms, isValid, searchQuery, filterStatus, grandTotal, fetchData, updateCount, addToCart, submit, getRoomName, getFloorSummary, getItemColorClass, isRoomComplete };
             }
         }).mount('#app');
     </script>
