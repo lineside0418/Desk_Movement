@@ -11,19 +11,14 @@
     
     <style>
         body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
-        /* スクロールバー装飾 */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        /* アニメーション */
         .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
         .slide-up-enter-active, .slide-up-leave-active { transition: transform 0.3s ease-out; }
         .slide-up-enter-from, .slide-up-leave-to { transform: translateY(100%); }
-        
         .loader { border-top-color: #4f46e5; animation: spinner 1s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* モーダル表示時の背景固定 */
         body.modal-open { overflow: hidden; }
     </style>
 </head>
@@ -32,16 +27,18 @@
 
         <div v-if="globalLoading" class="fixed inset-0 z-[100] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center">
             <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-12 w-12 mb-4"></div>
-            <p class="text-indigo-600 font-bold animate-pulse tracking-widest text-sm">{{ loadingMessage }}</p>
+            <p class="text-indigo-600 font-bold animate-pulse tracking-widest text-sm uppercase">{{ loadingMessage }}</p>
         </div>
 
         <transition name="fade">
-            <div v-if="showLoginModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div v-if="showLoginModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
                 <transition name="slide-up">
                     <div v-if="showLoginModal" class="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl overflow-hidden">
                         <div class="flex justify-between items-center mb-6">
                             <h3 class="text-xl font-bold text-slate-800">管理者ログイン</h3>
-                            <button @click="closeLogin" class="text-slate-400 hover:text-slate-600 bg-slate-100 p-1 rounded-full">✕</button>
+                            <button @click="closeLogin" class="text-slate-400 hover:text-slate-600 bg-slate-100 p-2 rounded-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            </button>
                         </div>
                         <div class="space-y-4">
                             <div>
@@ -52,8 +49,10 @@
                                 <label class="block text-xs font-bold text-slate-500 mb-1">パスワード</label>
                                 <input v-model="loginForm.password" type="password" placeholder="••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none text-lg">
                             </div>
-                            <button @click="doLogin" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-indigo-700 active:scale-[0.98] transition">
-                                認証して開始
+                            <button @click="doLogin" :disabled="isLoggingIn" 
+                                class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-indigo-700 active:scale-[0.98] transition disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2">
+                                <span v-if="isLoggingIn" class="loader h-5 w-5 border-2 border-t-2 border-white/50 border-t-white rounded-full"></span>
+                                <span v-else>認証して開始</span>
                             </button>
                         </div>
                     </div>
@@ -66,7 +65,7 @@
         </div>
 
         <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/50">
-            <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="max-w-6xl mx-auto px-4 py-2 flex justify-between items-center">
                 <div class="flex items-center gap-2" @click="fetchData(true)">
                     <div class="bg-slate-800 text-white p-1.5 rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12.378 1.602a.75.75 0 00-.756 0L3 6.632l9 5.25 9-5.25-8.622-5.03zM21.75 7.93l-9 5.25v9l8.628-5.032a.75.75 0 00.372-.648V7.93zM11.25 22.18v-9l-9-5.25v8.57a.75.75 0 00.372.648l8.628 5.033z" /></svg>
@@ -78,15 +77,20 @@
                 </div>
                 
                 <div class="flex gap-2">
+                    <button @click="fetchData(true)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        更新
+                    </button>
+
                     <button @click="openLogin" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all border" 
                         :class="isAdmin ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'">
                         <span class="w-2 h-2 rounded-full" :class="isAdmin ? 'bg-indigo-500 animate-pulse' : 'bg-slate-300'"></span>
-                        {{ isAdmin ? currentRoomName : 'Guest Mode' }}
+                        {{ isAdmin ? currentRoomName : 'Guest' }}
                     </button>
                 </div>
             </div>
 
-            <div v-if="currentTab === 'view'" class="bg-slate-50 border-b border-slate-200 px-4 py-2 overflow-x-auto">
+            <div v-if="currentTab === 'view'" class="bg-slate-50 border-b border-slate-200 px-4 py-2 overflow-x-auto no-scrollbar">
                 <div class="max-w-6xl mx-auto flex gap-2 min-w-max">
                     <input v-model="searchQuery" type="text" placeholder="部屋名検索..." class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-32">
                     
@@ -114,7 +118,6 @@
         <main class="flex-1 max-w-6xl mx-auto w-full p-4">
             
             <div v-if="currentTab === 'view'" class="space-y-8">
-                
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
                     <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -133,18 +136,17 @@
                             </div>
                             <div class="flex justify-between text-xs text-slate-400 font-mono">
                                 <span>{{ sum.current }}</span>
-                                <span>Target: {{ sum.target }}</span>
+                                <span>Goal: {{ sum.target }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div v-for="(floorRooms, floor) in filteredGroupedRooms" :key="floor">
-                    <div class="flex items-center gap-3 mb-4 sticky top-[110px] pt-2 pb-2 bg-[#f1f5f9] z-10">
+                    <div class="flex items-center gap-3 mb-4 sticky top-[108px] pt-2 pb-2 bg-[#f1f5f9] z-10">
                         <span class="bg-slate-700 text-white text-xs font-black px-3 py-1 rounded-md shadow-sm">{{ floor }}</span>
                         <div class="h-px bg-slate-300 flex-1"></div>
                     </div>
-
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
                          <div v-for="(sum, name) in getFloorSummary(floorRooms)" :key="name" 
                               class="px-3 py-2 rounded-lg border text-center text-xs flex justify-between items-center bg-white border-slate-200 shadow-sm">
@@ -154,12 +156,10 @@
                             </span>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         <div v-for="room in floorRooms" :key="room.id" 
                              class="bg-white rounded-xl border p-4 relative overflow-hidden transition-all hover:shadow-md"
                              :class="isRoomComplete(room) ? 'border-slate-200 opacity-90' : 'border-slate-300 shadow-sm'">
-                            
                             <div class="flex justify-between items-start mb-3">
                                 <div>
                                     <h3 class="font-bold text-base text-slate-800 leading-tight">{{ room.name }}</h3>
@@ -170,7 +170,6 @@
                                     OK
                                 </div>
                             </div>
-
                             <div class="space-y-2">
                                 <div v-for="(info, itemName) in room.items" :key="itemName" 
                                      class="flex justify-between items-center px-3 py-1.5 rounded-md text-sm border"
@@ -190,9 +189,8 @@
                         </div>
                     </div>
                 </div>
-                
                 <div v-if="Object.keys(filteredGroupedRooms).length === 0" class="text-center py-20 text-slate-400">
-                    <p class="font-bold">該当する部屋がありません</p>
+                    <p class="font-bold">該当なし</p>
                 </div>
             </div>
 
@@ -202,27 +200,25 @@
                     <h3 class="font-bold text-slate-800 mb-6 text-lg flex items-center gap-2">
                         <span class="bg-slate-100 p-1.5 rounded-lg text-xl">🚚</span> 新規移動申請
                     </h3>
-                    
                     <div class="space-y-6">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 mb-1.5">FROM (移動元)</label>
                                 <select v-model="form.fromId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                                    <option value="" disabled>選択してください</option>
+                                    <option value="" disabled>選択...</option>
                                     <option v-for="r in sortedRooms" :key="r.id" :value="r.id">{{ r.name }}</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-400 mb-1.5">TO (移動先)</label>
                                 <select v-model="form.toId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none">
-                                    <option value="" disabled>選択してください</option>
+                                    <option value="" disabled>選択...</option>
                                     <option v-for="r in sortedRooms" :key="r.id" :value="r.id">{{ r.name }}</option>
                                 </select>
                             </div>
                         </div>
-
                         <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                            <label class="block text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Items to Move</label>
+                            <label class="block text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Items</label>
                             <div v-for="item in availableItems" :key="item" class="flex justify-between items-center mb-4 last:mb-0">
                                 <span class="font-bold text-slate-700 text-sm">{{ item }}</span>
                                 <div class="flex items-center bg-white shadow-sm border border-slate-200 rounded-lg h-10 overflow-hidden">
@@ -232,11 +228,9 @@
                                 </div>
                             </div>
                         </div>
-
                         <button @click="addToCart" :disabled="!isValid" 
                             class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                             <span>カートに追加</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" /></svg>
                         </button>
                     </div>
                 </div>
@@ -257,7 +251,6 @@
                         送信する
                     </button>
                 </div>
-                
                 <div v-if="showCartDetails" class="max-w-xl mx-auto mt-4 border-t border-slate-100 pt-4 max-h-60 overflow-y-auto custom-scrollbar">
                     <div v-for="(item, idx) in cart" :key="idx" class="flex justify-between items-center bg-slate-50 p-3 rounded-lg mb-2 text-sm">
                         <div>
@@ -283,10 +276,9 @@
 
         createApp({
             setup() {
-                // ↓↓↓ ここを自分のGAS URLに変えて ↓↓↓
-                const API_URL = 'https://script.google.com/macros/s/AKfycbw4ogoiRnaZf-qR-pITqrTffACixWwY9L6ocFjph5K0iTYfY41m2okVWBs9E4AmXVzP/exec';
+                // ↓↓↓ GAS URL ↓↓↓
+                const API_URL = 'https://script.google.com/macros/s/AKfycbwnElrgylRUcV1k27fotE2y6KyvBMVAn2wZA_OcI8jawnqNfLFlZBZ73LpXtcFwIpiY/exec';
                 
-                // State
                 const rooms = ref([]);
                 const availableItems = ref([]);
                 const globalLoading = ref(true);
@@ -294,73 +286,54 @@
                 const notice = ref('');
                 
                 const isAdmin = ref(false);
-                const showLoginModal = ref(false); // モーダル制御
+                const showLoginModal = ref(false);
                 const loginForm = ref({ roomName: '', password: '' });
+                const isLoggingIn = ref(false); // ログイン処理中フラグ
                 const currentRoomName = ref('');
                 const password = ref('');
                 
                 const currentTab = ref('view');
                 const searchQuery = ref('');
-                const filterStatus = ref('all'); // all, deficit, surplus
+                const filterStatus = ref('all');
                 
                 const cart = ref([]);
                 const showCartDetails = ref(false);
                 const form = ref({ fromId: '', toId: '', moves: {} });
 
-                // Computed: フィルタリング
+                // Computed
                 const filteredRooms = computed(() => {
                     let res = rooms.value;
-                    
-                    // 検索フィルタ
                     if (searchQuery.value) {
                         const q = searchQuery.value.toLowerCase();
                         res = res.filter(r => r.name.toLowerCase().includes(q) || String(r.id).toLowerCase().includes(q));
                     }
-                    
-                    // ステータスフィルタ
                     if (filterStatus.value === 'deficit') {
                         res = res.filter(r => r.items && Object.values(r.items).some(i => i.diff < 0));
                     } else if (filterStatus.value === 'surplus') {
                         res = res.filter(r => r.items && Object.values(r.items).some(i => i.diff > 0));
                     }
-                    
                     return res;
                 });
-
                 const filteredGroupedRooms = computed(() => {
                     const g = {};
-                    filteredRooms.value.forEach(r => { 
-                        if (!g[r.floor]) g[r.floor] = []; 
-                        g[r.floor].push(r); 
-                    });
+                    filteredRooms.value.forEach(r => { if (!g[r.floor]) g[r.floor] = []; g[r.floor].push(r); });
                     return g;
                 });
-
-                // Computed: 全校集計 (Grand Total)
                 const grandTotal = computed(() => {
                     const total = {};
-                    availableItems.value.forEach(item => {
-                        total[item] = { current: 0, target: 0, diff: 0, percent: 0 };
-                    });
-                    
+                    availableItems.value.forEach(item => { total[item] = { current: 0, target: 0, diff: 0, percent: 0 }; });
                     rooms.value.forEach(r => {
                         if (!r.items) return;
                         Object.keys(r.items).forEach(k => {
-                            if (total[k]) {
-                                total[k].current += r.items[k].current;
-                                total[k].target += r.items[k].target;
-                            }
+                            if (total[k]) { total[k].current += r.items[k].current; total[k].target += r.items[k].target; }
                         });
                     });
-                    
                     Object.keys(total).forEach(k => {
                         total[k].diff = total[k].current - total[k].target;
                         total[k].percent = total[k].target > 0 ? Math.round((total[k].current / total[k].target) * 100) : 0;
                     });
-                    
                     return total;
                 });
-
                 const sortedRooms = computed(() => [...rooms.value].sort((a,b)=> String(a.id).localeCompare(String(b.id))));
                 const isValid = computed(() => form.value.fromId && form.value.toId && form.value.fromId !== form.value.toId && Object.values(form.value.moves).some(v => v > 0));
 
@@ -380,101 +353,76 @@
                     } catch (e) { console.error(e); } finally { globalLoading.value = false; }
                 };
 
-                // モーダル操作
                 const openLogin = () => {
                     if (isAdmin.value) {
-                        // ログアウト処理
-                        Swal.fire({
-                            title: 'ログアウトしますか？',
-                            icon: 'question',
-                            showCancelButton: true,
-                            confirmButtonText: 'はい'
-                        }).then((result) => {
-                            if(result.isConfirmed) {
-                                isAdmin.value = false;
-                                currentRoomName.value = '';
-                                password.value = '';
-                                currentTab.value = 'view';
-                            }
+                        Swal.fire({ title: 'ログアウトしますか？', icon: 'question', showCancelButton: true, confirmButtonText: 'はい' }).then((result) => {
+                            if(result.isConfirmed) { isAdmin.value = false; currentRoomName.value = ''; password.value = ''; currentTab.value = 'view'; }
                         });
-                    } else {
-                        showLoginModal.value = true;
-                        document.body.classList.add('modal-open');
-                    }
+                    } else { showLoginModal.value = true; document.body.classList.add('modal-open'); }
                 };
                 
-                const closeLogin = () => {
-                    showLoginModal.value = false;
-                    document.body.classList.remove('modal-open');
-                };
+                const closeLogin = () => { showLoginModal.value = false; document.body.classList.remove('modal-open'); };
 
-                const doLogin = () => {
+                // ★ログイン処理（GAS通信あり）
+                const doLogin = async () => {
                     if (!loginForm.value.roomName || !loginForm.value.password) {
-                        Swal.fire('エラー', '入力してください', 'warning');
-                        return;
+                        Swal.fire('エラー', '入力してください', 'warning'); return;
                     }
-                    currentRoomName.value = loginForm.value.roomName;
-                    password.value = loginForm.value.password;
-                    isAdmin.value = true;
-                    currentTab.value = 'move';
-                    closeLogin();
                     
-                    // URLパラメータ削除
-                    window.history.replaceState(null, '', window.location.pathname);
-
-                    const Toast = Swal.mixin({ toast: true, position: 'top', showConfirmButton: false, timer: 3000 });
-                    Toast.fire({ icon: 'success', title: `Command Access Granted: ${currentRoomName.value}` });
+                    isLoggingIn.value = true;
+                    try {
+                        // GASにチェックリクエストを送る
+                        const res = await fetch(API_URL, {
+                            method: 'POST',
+                            credentials: 'omit',
+                            body: JSON.stringify({
+                                action: 'check_auth',
+                                password: loginForm.value.password
+                            })
+                        });
+                        const data = await res.json();
+                        
+                        if (data.status === 'success') {
+                            // 成功
+                            currentRoomName.value = loginForm.value.roomName;
+                            password.value = loginForm.value.password;
+                            isAdmin.value = true;
+                            currentTab.value = 'move';
+                            closeLogin();
+                            window.history.replaceState(null, '', window.location.pathname);
+                            Swal.fire({ icon: 'success', title: `Welcome, ${currentRoomName.value}`, timer: 1500, showConfirmButton: false });
+                        } else {
+                            // 失敗
+                            throw new Error(data.message || '認証に失敗しました');
+                        }
+                    } catch (e) {
+                        Swal.fire('認証エラー', e.message, 'error');
+                    } finally {
+                        isLoggingIn.value = false;
+                    }
                 };
 
                 const updateCount = (i, d) => form.value.moves[i] = Math.max(0, (form.value.moves[i] || 0) + d);
-                
                 const addToCart = () => {
                     cart.value.push(JSON.parse(JSON.stringify(form.value)));
                     Object.keys(form.value.moves).forEach(k => form.value.moves[k] = 0);
                     if(navigator.vibrate) navigator.vibrate(50);
-                    const Toast = Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 2000 });
-                    Toast.fire({ icon: 'success', title: 'カートに追加しました' });
+                    Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 2000 }).fire({ icon: 'success', title: 'カートに追加しました' });
                 };
                 
                 const submit = async () => {
-                    const result = await Swal.fire({
-                        title: '送信確認',
-                        text: `${cart.value.length}件の移動データを送信します`,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: '送信実行',
-                        confirmButtonColor: '#4f46e5'
-                    });
-                    
-                    if (!result.isConfirmed) return;
-                    
-                    globalLoading.value = true;
-                    loadingMessage.value = 'TRANSMITTING...';
+                    if(!(await Swal.fire({ title: '送信確認', text: `${cart.value.length}件送信します`, icon: 'warning', showCancelButton: true, confirmButtonText: '送信', confirmButtonColor: '#4f46e5' })).isConfirmed) return;
+                    globalLoading.value = true; loadingMessage.value = 'TRANSMITTING...';
                     try {
-                        const res = await fetch(API_URL, { 
-                            method: 'POST', 
-                            credentials: 'omit',
-                            body: JSON.stringify({
-                                password: password.value, 
-                                user: currentRoomName.value, 
-                                items: cart.value
-                            }) 
-                        });
+                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ password: password.value, user: currentRoomName.value, items: cart.value }) });
                         const data = await res.json();
                         if(data.status==='success') { 
                             Swal.fire({icon:'success', title:'完了', timer: 2000, showConfirmButton:false}); 
-                            cart.value=[]; 
-                            showCartDetails.value = false;
-                            fetchData(true); 
+                            cart.value=[]; showCartDetails.value = false; fetchData(true); 
                         } else throw new Error(data.message);
-                    } catch(e) { 
-                        Swal.fire('Error', e.message, 'error'); 
-                    } finally { 
-                        globalLoading.value = false; 
-                    }
+                    } catch(e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; }
                 };
 
-                // ヘルパー
                 const getFloorSummary = (rs) => {
                     const s = {};
                     rs.forEach(r => { if(r.items) Object.keys(r.items).forEach(k => { if(!s[k])s[k]={diff:0}; s[k].diff+=r.items[k].diff; })});
@@ -484,23 +432,16 @@
                 const isRoomComplete = (r) => r.items && Object.values(r.items).every(i => i.diff === 0);
                 const getRoomName = (id) => rooms.value.find(r => r.id === id)?.name || id;
 
-                // Init
                 onMounted(async () => {
                     await fetchData(true);
                     const params = new URLSearchParams(window.location.search);
                     const fromId = params.get('from');
-                    if (fromId) {
-                        form.value.fromId = fromId;
-                        // 自動でログインモーダルを開く
-                        showLoginModal.value = true;
-                    }
+                    if (fromId) { form.value.fromId = fromId; showLoginModal.value = true; }
                 });
 
                 return { 
-                    rooms, availableItems, globalLoading, loadingMessage, notice, isAdmin, currentRoomName, 
-                    showLoginModal, loginForm, openLogin, closeLogin, doLogin,
-                    currentTab, cart, showCartDetails, form, filteredGroupedRooms, sortedRooms, isValid, 
-                    searchQuery, filterStatus, grandTotal,
+                    rooms, availableItems, globalLoading, loadingMessage, notice, isAdmin, currentRoomName, showLoginModal, loginForm, isLoggingIn, openLogin, closeLogin, doLogin,
+                    currentTab, cart, showCartDetails, form, filteredGroupedRooms, sortedRooms, isValid, searchQuery, filterStatus, grandTotal,
                     fetchData, updateCount, addToCart, submit, getRoomName, getFloorSummary, getItemColorClass, isRoomComplete 
                 };
             }
