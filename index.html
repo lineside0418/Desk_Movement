@@ -10,14 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
-        /* スクロールバー非表示 (見た目重視) */
+        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        /* トランジション */
         .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
-        /* ローディングオーバーレイ用 */
         .loader { border-top-color: #4f46e5; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -30,12 +27,13 @@
             <p class="text-indigo-600 font-bold animate-pulse">{{ loadingMessage }}</p>
         </div>
 
-        <header class="bg-white/80 backdrop-blur border-b border-slate-200 sticky top-0 z-40">
-            <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+        <header class="bg-white/90 backdrop-blur border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+            <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
                 <div class="flex items-center gap-2">
                     <div class="bg-indigo-600 text-white p-1.5 rounded-lg shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                            <path d="M12.378 1.602a.75.75 0 00-.756 0L3 6.632l9 5.25 9-5.25-8.622-5.03zM21.75 7.93l-9 5.25v9l8.628-5.032a.75.75 0 00.372-.648V7.93zM11.25 22.18v-9l-9-5.25v8.57a.75.75 0 00.372.648l8.628 5.033z" />
+                            <path d="M3.375 3C2.339 3 1.5 3.84 1.5 4.875v.75c0 1.036.84 1.875 1.875 1.875h17.25c1.035 0 1.875-.84 1.875-1.875v-.75C22.5 3.839 21.66 3 20.625 3H3.375z" />
+                            <path fill-rule="evenodd" d="M3.087 9l.54 9.176A3 3 0 006.62 21h10.757a3 3 0 002.995-2.824L20.913 9H3.087zm6.163 3.75A.75.75 0 0110 12h4a.75.75 0 010 1.5h-4a.75.75 0 01-.75-.75z" clip-rule="evenodd" />
                         </svg>
                     </div>
                     <div>
@@ -60,13 +58,13 @@
                 </div>
             </div>
             
-            <div v-if="isAdmin" class="flex max-w-5xl mx-auto px-4 gap-6 text-sm">
+            <div v-if="isAdmin" class="flex max-w-6xl mx-auto px-4 gap-6 text-sm">
                 <button @click="currentTab = 'view'" class="pb-2 border-b-2 font-medium transition-colors" :class="currentTab === 'view' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'">状況ボード</button>
                 <button @click="currentTab = 'move'" class="pb-2 border-b-2 font-medium transition-colors" :class="currentTab === 'move' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'">移動申請</button>
             </div>
         </header>
 
-        <main class="flex-1 max-w-5xl mx-auto w-full p-4 pb-20">
+        <main class="flex-1 max-w-6xl mx-auto w-full p-4 pb-20">
             <div v-if="error" class="bg-red-50 border border-red-200 text-red-600 p-4 rounded-xl flex items-center gap-3 mb-6">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 shrink-0"><path fill-rule="evenodd" d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z" clip-rule="evenodd" /></svg>
                 <div class="text-sm">
@@ -77,37 +75,58 @@
             </div>
 
             <div v-if="currentTab === 'view'">
-                <div v-for="(floorRooms, floor) in groupedRooms" :key="floor" class="mb-8">
-                    <div class="flex items-center gap-2 mb-3 sticky top-14 pt-2 bg-[#f1f5f9] z-10">
-                        <span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded">{{ floor }}</span>
-                        <div class="h-px bg-slate-300 flex-1"></div>
+                <div v-for="(floorRooms, floor) in groupedRooms" :key="floor" class="mb-10">
+                    
+                    <div class="flex items-center gap-3 mb-4 sticky top-14 pt-2 pb-2 bg-[#f8fafc] z-10 border-b border-slate-200">
+                        <span class="bg-slate-800 text-white text-sm font-bold px-3 py-1 rounded-full">{{ floor }}</span>
+                        <span class="text-slate-400 text-xs font-bold tracking-wider uppercase">Floor Summary</span>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div v-for="(sum, name) in getFloorSummary(floorRooms)" :key="name" 
+                             class="p-3 rounded-lg border flex flex-col items-center justify-center text-center"
+                             :class="getItemColorClass(sum.diff)">
+                            <div class="text-xs font-bold opacity-70 mb-1">{{ name }}合計</div>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-xl font-black">{{ sum.current }}</span>
+                                <span class="text-xs opacity-60">/ {{ sum.target }}</span>
+                            </div>
+                            <div class="text-xs font-bold mt-1 px-2 py-0.5 rounded-full bg-white/50">
+                                {{ sum.diff > 0 ? '+' : '' }}{{ sum.diff }}
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div v-for="room in floorRooms" :key="room.id" class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-100 p-4 relative overflow-hidden group hover:shadow-md transition-shadow">
-                            <div class="absolute top-0 right-0 w-16 h-16 pointer-events-none">
-                                <div class="absolute transform rotate-45 bg-slate-100 text-[10px] font-bold py-1 right-[-25px] top-[10px] w-[100px] text-center shadow-sm"
-                                     :class="getRoomStatusColor(room)">
-                                     {{ getRoomStatusText(room) }}
+                        <div v-for="room in floorRooms" :key="room.id" class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 relative overflow-hidden hover:shadow-md transition-shadow">
+                            
+                            <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-2">
+                                <div>
+                                    <h3 class="font-bold text-lg text-slate-800">{{ room.name }}</h3>
+                                    <p class="text-xs font-mono text-slate-400">{{ room.id }}</p>
+                                </div>
+                                <div v-if="isRoomComplete(room)" class="bg-green-100 text-green-700 p-1 rounded-full">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <h3 class="font-bold text-lg text-slate-800">{{ room.name }}</h3>
-                                <p class="text-xs font-mono text-slate-400">{{ room.id }}</p>
-                            </div>
-
                             <div class="space-y-2">
-                                <div v-for="(info, itemName) in room.items" :key="itemName" class="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-lg text-sm">
-                                    <span class="text-slate-500 font-medium">{{ itemName }}</span>
+                                <div v-for="(info, itemName) in room.items" :key="itemName" 
+                                     class="flex justify-between items-center px-3 py-2 rounded-lg text-sm border transition-colors"
+                                     :class="getItemColorClass(info.diff)">
+                                    
+                                    <span class="font-bold opacity-80">{{ itemName }}</span>
+                                    
                                     <div class="flex items-center gap-2">
-                                        <span class="font-mono font-bold text-base" :class="info.diff === 0 ? 'text-slate-700' : (info.diff > 0 ? 'text-blue-600' : 'text-rose-600')">
-                                            {{ info.current }}
-                                        </span>
-                                        <span class="text-xs text-slate-400">/ {{ info.target }}</span>
-                                        <span v-if="info.diff !== 0" class="text-[10px] font-bold px-1.5 py-0.5 rounded ml-1"
-                                            :class="info.diff > 0 ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'">
+                                        <div class="flex items-baseline gap-1">
+                                            <span class="font-mono font-bold text-lg">{{ info.current }}</span>
+                                            <span class="text-xs opacity-60">/ {{ info.target }}</span>
+                                        </div>
+                                        <span v-if="info.diff !== 0" class="text-[10px] font-bold px-1.5 py-0.5 rounded ml-1 bg-white/60">
                                             {{ info.diff > 0 ? '+' : ''}}{{ info.diff }}
+                                        </span>
+                                        <span v-else class="text-[10px] font-bold px-1.5 py-0.5 rounded ml-1 bg-white/60">
+                                            OK
                                         </span>
                                     </div>
                                 </div>
@@ -173,13 +192,9 @@
                             <div v-for="item in availableItems" :key="item" class="flex justify-between items-center mb-4 last:mb-0">
                                 <span class="font-bold text-slate-700 text-sm">{{ item }}</span>
                                 <div class="flex items-center bg-white shadow-sm border border-slate-200 rounded-lg overflow-hidden h-10">
-                                    <button @click="updateCount(item, -1)" class="w-10 h-full flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-indigo-600 active:bg-slate-100 transition">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H3.75A.75.75 0 013 10z" clip-rule="evenodd" /></svg>
-                                    </button>
+                                    <button @click="updateCount(item, -1)" class="w-10 h-full flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-indigo-600 active:bg-slate-100 transition">－</button>
                                     <input type="number" v-model="form.moves[item]" class="w-12 text-center text-slate-800 font-bold outline-none border-x border-slate-100 h-full" min="0">
-                                    <button @click="updateCount(item, 1)" class="w-10 h-full flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-indigo-600 active:bg-slate-100 transition">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4"><path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" /></svg>
-                                    </button>
+                                    <button @click="updateCount(item, 1)" class="w-10 h-full flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-indigo-600 active:bg-slate-100 transition">＋</button>
                                 </div>
                             </div>
                         </div>
@@ -199,8 +214,8 @@
 
         createApp({
             setup() {
-                // ↓↓↓ ここをGASの新しいウェブアプリURLに更新 ↓↓↓
-                const API_URL = 'https://script.google.com/macros/s/AKfycbwZltx0vMrPpzmyvwM_3qfxb7OjlWTXFzWJZhFccWznV56r0-5Fbifk5oAxP558mFf4/exec';
+                // ↓↓↓ ここをあなたのGAS URLに変えてね ↓↓↓
+                const API_URL = 'https://script.google.com/macros/s/AKfycbx6_-ahKrzrHErgm-ljXUCN2YZ9cRwGelUlKe16guLpfjgbEaRafou7F43dbVSMmF3W/exec';
                 
                 const rooms = ref([]);
                 const availableItems = ref([]);
@@ -241,10 +256,9 @@
                     }
                     error.value = '';
                     try {
-                        // CORS対策：認証情報を送らない (omit)
                         const res = await fetch(API_URL, {
                             method: 'GET',
-                            credentials: 'omit', // ★これが重要。マルチログイン対策
+                            credentials: 'omit',
                             redirect: 'follow'
                         });
 
@@ -262,10 +276,39 @@
                         }
                     } catch (e) {
                         error.value = e.message;
-                        console.error("Fetch Error:", e);
                     } finally {
                         globalLoading.value = false;
                     }
+                };
+
+                // ★フロアごとの合計計算機能
+                const getFloorSummary = (floorRooms) => {
+                    const summary = {};
+                    floorRooms.forEach(room => {
+                        if(!room.items) return;
+                        Object.keys(room.items).forEach(itemName => {
+                            if(!summary[itemName]) summary[itemName] = { current: 0, target: 0, diff: 0 };
+                            summary[itemName].current += room.items[itemName].current;
+                            summary[itemName].target += room.items[itemName].target;
+                        });
+                    });
+                    // 差分計算
+                    Object.keys(summary).forEach(k => {
+                        summary[k].diff = summary[k].current - summary[k].target;
+                    });
+                    return summary;
+                };
+
+                // ★色分けロジック
+                const getItemColorClass = (diff) => {
+                    if (diff < 0) return 'bg-red-50 border-red-200 text-red-900'; // 不足（赤）
+                    if (diff > 0) return 'bg-amber-100 border-amber-200 text-amber-900'; // 過剰（黄）
+                    return 'bg-emerald-50 border-emerald-200 text-emerald-900'; // OK（緑）
+                };
+
+                const isRoomComplete = (room) => {
+                    if(!room.items) return false;
+                    return Object.values(room.items).every(i => i.diff === 0);
                 };
 
                 const toggleAdmin = async () => {
@@ -276,37 +319,20 @@
                         password.value = '';
                         return;
                     }
-
-                    // 教室名とパスワードの両方を求める
                     const { value: formValues } = await Swal.fire({
                         title: '管理者ログイン',
-                        html:
-                            '<input id="swal-input1" class="swal2-input" placeholder="担当教室名 (例: 3-A)">' +
-                            '<input id="swal-input2" class="swal2-input" type="password" placeholder="パスワード">',
+                        html: '<input id="swal-input1" class="swal2-input" placeholder="担当教室名"><input id="swal-input2" class="swal2-input" type="password" placeholder="パスワード">',
                         focusConfirm: false,
                         showCancelButton: true,
-                        preConfirm: () => {
-                            return [
-                                document.getElementById('swal-input1').value,
-                                document.getElementById('swal-input2').value
-                            ]
-                        }
+                        preConfirm: () => [document.getElementById('swal-input1').value, document.getElementById('swal-input2').value]
                     });
 
-                    if (formValues) {
-                        if(!formValues[0] || !formValues[1]) {
-                            Swal.fire('エラー', '教室名とパスワードを入力してください', 'warning');
-                            return;
-                        }
+                    if (formValues && formValues[0] && formValues[1]) {
                         currentRoomName.value = formValues[0];
                         password.value = formValues[1];
                         isAdmin.value = true;
                         currentTab.value = 'move';
-                        
-                        const Toast = Swal.mixin({
-                            toast: true, position: 'top', showConfirmButton: false, timer: 2000
-                        });
-                        Toast.fire({ icon: 'success', title: `Welcome, ${currentRoomName.value}` });
+                        Swal.mixin({ toast: true, position: 'top', showConfirmButton: false, timer: 2000 }).fire({ icon: 'success', title: `Welcome, ${currentRoomName.value}` });
                     }
                 };
 
@@ -318,7 +344,6 @@
                 const addToCart = () => {
                     cart.value.push(JSON.parse(JSON.stringify(form.value)));
                     Object.keys(form.value.moves).forEach(k => form.value.moves[k] = 0);
-                    // スマホでバイブレーション
                     if(navigator.vibrate) navigator.vibrate(50);
                     Swal.mixin({ toast: true, position: 'bottom-end', showConfirmButton: false, timer: 1500 }).fire({ icon: 'success', title: 'Added to list' });
                 };
@@ -326,45 +351,34 @@
                 const submit = async () => {
                     const result = await Swal.fire({
                         title: '最終確認',
-                        text: `合計 ${cart.value.length} 件の移動を送信します。よろしいですか？`,
+                        text: `合計 ${cart.value.length} 件の移動を送信します。`,
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#4f46e5',
-                        confirmButtonText: '確定して送信',
-                        cancelButtonText: '戻る'
+                        confirmButtonText: '送信'
                     });
 
                     if (!result.isConfirmed) return;
 
-                    // 全画面ローディングON
                     globalLoading.value = true;
                     loadingMessage.value = 'Sending Data...';
 
                     try {
-                        // POST送信
-                        const payload = {
-                            password: password.value,
-                            user: currentRoomName.value, // 教室名を送信
-                            items: cart.value
-                        };
-
+                        const payload = { password: password.value, user: currentRoomName.value, items: cart.value };
                         const res = await fetch(API_URL, {
                             method: 'POST',
-                            credentials: 'omit', // 重要
+                            credentials: 'omit',
                             redirect: 'follow',
                             body: JSON.stringify(payload)
                         });
-
                         const data = await res.json();
-                        
                         if (data.status === 'success') {
                             await Swal.fire({ icon: 'success', title: '完了', text: '移動が記録されました', confirmButtonColor: '#4f46e5' });
                             cart.value = [];
-                            fetchData(true); // 最新データ再取得
+                            fetchData(true);
                         } else {
                             throw new Error(data.message);
                         }
-
                     } catch (e) {
                         Swal.fire('送信エラー', e.message, 'error');
                     } finally {
@@ -374,36 +388,13 @@
 
                 const getRoomName = (id) => rooms.value.find(r => r.id === id)?.name || id;
 
-                const getRoomStatusColor = (room) => {
-                    if (!room.items) return 'bg-slate-200 text-slate-500';
-                    let deficit = false, surplus = false;
-                    Object.values(room.items).forEach(i => {
-                        if (i.diff < 0) deficit = true;
-                        if (i.diff > 0) surplus = true;
-                    });
-                    if (deficit) return 'bg-rose-100 text-rose-700 border border-rose-200';
-                    if (surplus) return 'bg-blue-100 text-blue-700 border border-blue-200';
-                    return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
-                };
-
-                const getRoomStatusText = (room) => {
-                    if (!room.items) return '-';
-                    let deficit = false, surplus = false;
-                    Object.values(room.items).forEach(i => {
-                        if (i.diff < 0) deficit = true;
-                        if (i.diff > 0) surplus = true;
-                    });
-                    if (deficit) return '不足あり';
-                    if (surplus) return '余剰あり';
-                    return '完了';
-                };
-
                 onMounted(() => fetchData(true));
 
                 return {
                     rooms, availableItems, globalLoading, loadingMessage, error, isAdmin, currentRoomName, currentTab, cart, form,
                     groupedRooms, sortedRooms, isValid,
-                    fetchData, toggleAdmin, updateCount, addToCart, submit, getRoomName, getRoomStatusColor, getRoomStatusText
+                    fetchData, toggleAdmin, updateCount, addToCart, submit, getRoomName, 
+                    getFloorSummary, getItemColorClass, isRoomComplete
                 };
             }
         }).mount('#app');
