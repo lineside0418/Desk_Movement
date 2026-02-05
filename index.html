@@ -19,7 +19,6 @@
         .loader { border-top-color: #4f46e5; animation: spinner 1s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         body.modal-open { overflow: hidden; }
-        /* 横スクロール隠し */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -32,6 +31,21 @@
             <p class="text-indigo-600 font-bold animate-pulse tracking-widest text-sm uppercase">{{ loadingMessage }}</p>
         </div>
 
+        <div v-if="isBackgroundSyncing" class="fixed bottom-4 right-4 z-50 bg-white/80 backdrop-blur rounded-full p-2 shadow-lg border border-slate-200 pointer-events-none transition-opacity duration-500">
+            <svg class="w-4 h-4 text-indigo-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        </div>
+
+        <div v-if="showTermChangeModal" class="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-6">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center">
+                <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">⚠️</div>
+                <h3 class="text-xl font-black text-slate-800 mb-2">ターム変更</h3>
+                <p class="text-sm text-slate-500 mb-6">
+                    <strong>{{ previousTerm }}</strong> から <strong>{{ currentTerm }}</strong> に切り替わりました。<br>最新データを読み込みます。
+                </p>
+                <button @click="confirmTermChange" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition">OK</button>
+            </div>
+        </div>
+
         <transition name="fade">
             <div v-if="showLoginModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
                 <transition name="slide-up">
@@ -41,7 +55,7 @@
                             <button @click="closeLogin" class="text-slate-400 hover:text-slate-600 bg-slate-100 p-2 rounded-full">✕</button>
                         </div>
                         <div class="space-y-4">
-                            <div><label class="block text-xs font-bold text-slate-500 mb-1">ユーザー名 (教室名 or Admin)</label><input v-model="loginForm.roomName" type="text" placeholder="例: 3-A" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"></div>
+                            <div><label class="block text-xs font-bold text-slate-500 mb-1">ユーザー名</label><input v-model="loginForm.roomName" type="text" placeholder="例: 3-A" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"></div>
                             <div><label class="block text-xs font-bold text-slate-500 mb-1">パスワード</label><input v-model="loginForm.password" type="password" placeholder="••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 outline-none text-lg"></div>
                             <button @click="doLogin" :disabled="isLoggingIn" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-indigo-700 active:scale-[0.98] transition disabled:opacity-70 flex justify-center items-center gap-2">
                                 <span v-if="isLoggingIn" class="loader h-5 w-5 border-2 border-t-2 border-white/50 border-t-white rounded-full"></span>
@@ -64,7 +78,10 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12.378 1.602a.75.75 0 00-.756 0L3 6.632l9 5.25 9-5.25-8.622-5.03zM21.75 7.93l-9 5.25v9l8.628-5.032a.75.75 0 00.372-.648V7.93zM11.25 22.18v-9l-9-5.25v8.57a.75.75 0 00.372.648l8.628 5.033z" /></svg>
                     </div>
                     <div>
-                        <h1 class="font-bold text-slate-800 leading-none tracking-tight text-lg">S.K.I.D</h1>
+                        <h1 class="font-bold text-slate-800 leading-none tracking-tight text-lg flex items-center gap-2">
+                            S.K.I.D
+                            <span v-if="currentTerm" class="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-black tracking-widest uppercase">{{ currentTerm }}</span>
+                        </h1>
                         <p class="text-[10px] font-bold tracking-widest uppercase" :class="isSuperAdmin ? 'text-rose-600' : 'text-slate-400'">
                             {{ isSuperAdmin ? 'Admin Mode' : (isAdmin ? 'Login: ' + currentRoomName : 'Guest View') }}
                         </p>
@@ -102,8 +119,8 @@
 
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
                     <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                        学校全体の総数 (Grand Total)
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        全体総数 ({{ currentTerm }})
                     </h2>
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <div v-for="(sum, name) in grandTotal" :key="name" class="bg-slate-50 rounded-xl p-3 border border-slate-100">
@@ -127,15 +144,14 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        <div v-for="room in floorRooms" :key="room.id" class="bg-white rounded-xl border p-4 shadow-sm" :class="isRoomComplete(room) ? 'border-slate-200 opacity-80' : 'border-slate-300'">
+                        <div v-for="room in floorRooms" :key="room.id" class="bg-white rounded-xl relative overflow-hidden transition-all duration-300 p-4 border" :class="getRoomCardClass(room)">
                             <div class="flex justify-between items-start mb-2">
                                 <h3 class="font-bold text-base text-slate-800">{{ room.name }}</h3>
                                 <div v-if="isRoomComplete(room)" class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-full">OK</div>
                             </div>
                             <div class="space-y-1.5">
-                                <div v-for="(info, itemName) in room.items" :key="itemName" class="flex justify-between items-center px-2 py-1.5 rounded bg-slate-50 text-sm border border-slate-100" :class="getItemColorClass(info.diff)">
+                                <div v-for="(info, itemName) in room.items" :key="itemName" class="flex justify-between items-center px-2 py-1.5 rounded bg-white/50 text-sm border border-slate-100" :class="getItemColorClass(info.diff)">
                                     <span class="font-bold text-xs text-slate-600">{{ itemName }}</span>
                                     <div class="flex items-center gap-2"><span class="font-mono font-bold">{{ info.current }}</span><span class="text-[10px] opacity-50">/{{ info.target }}</span><span v-if="info.diff !== 0" class="text-[10px] font-bold px-1 rounded ml-1 bg-white/80 border">{{ info.diff > 0 ? '+' : ''}}{{ info.diff }}</span></div>
                                 </div>
@@ -151,7 +167,6 @@
                 <div class="space-y-3">
                     <div v-for="(log, idx) in logs" :key="idx" class="bg-white rounded-xl border p-4 shadow-sm relative overflow-hidden" :class="log.status === '取り消し' ? 'opacity-50 grayscale bg-slate-50 border-slate-200' : 'border-slate-200'">
                         <div v-if="log.status === '取り消し'" class="absolute right-0 top-0 bg-slate-200 text-slate-500 text-[10px] px-2 py-1 font-bold rounded-bl">CANCELLED</div>
-                        
                         <div class="flex items-start justify-between gap-4">
                             <div class="flex-1">
                                 <div class="font-bold text-base text-slate-800 flex flex-wrap items-center gap-2">
@@ -159,23 +174,10 @@
                                     <span class="text-slate-300">➜</span>
                                     <span class="bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded text-sm">{{ log.to }}</span>
                                 </div>
-                                <div class="mt-1.5 text-sm font-bold text-slate-600 bg-slate-50 inline-block px-2 py-1 rounded border border-slate-100">
-                                    📦 {{ log.detail }}
-                                </div>
-                                <div class="mt-2 text-xs text-slate-400 flex items-center gap-2">
-                                    <span class="font-mono">{{ log.time }}</span>
-                                    <span>•</span>
-                                    <span>担当: {{ log.user }}</span>
-                                    <span v-if="log.status === '管理者操作'" class="text-rose-500 font-bold">(Admin Edit)</span>
-                                </div>
+                                <div class="mt-1.5 text-sm font-bold text-slate-600 bg-slate-50 inline-block px-2 py-1 rounded border border-slate-100">📦 {{ log.detail }}</div>
+                                <div class="mt-2 text-xs text-slate-400 flex items-center gap-2"><span class="font-mono">{{ log.time }}</span><span>•</span><span>担当: {{ log.user }}</span><span v-if="log.status === '管理者操作'" class="text-rose-500 font-bold">(Admin Edit)</span></div>
                             </div>
-                            
-                            <button v-if="log.status !== '取り消し' && log.status !== '管理者操作' && (isSuperAdmin || (isAdmin && currentRoomName === log.user))" 
-                                @click="cancelLog(log)" 
-                                class="shrink-0 text-xs bg-white border border-rose-200 text-rose-600 px-3 py-2 rounded-lg font-bold hover:bg-rose-50 active:scale-95 transition flex flex-col items-center gap-1">
-                                <span>↩</span>
-                                <span>取消</span>
-                            </button>
+                            <button v-if="log.status !== '取り消し' && log.status !== '管理者操作' && (isSuperAdmin || (isAdmin && currentRoomName === log.user))" @click="cancelLog(log)" class="shrink-0 text-xs bg-white border border-rose-200 text-rose-600 px-3 py-2 rounded-lg font-bold hover:bg-rose-50 active:scale-95 transition flex flex-col items-center gap-1"><span>↩</span><span>取消</span></button>
                         </div>
                     </div>
                     <div v-if="logs.length === 0" class="text-center py-10 text-slate-400">ログなし</div>
@@ -185,19 +187,13 @@
             <div v-else-if="currentTab === 'admin'" class="space-y-6">
                 <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 flex gap-3 text-rose-800 text-sm font-bold">
                     <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                    <div>
-                        <p>管理者編集モード</p>
-                        <p class="text-xs font-normal opacity-80 mt-1">ここで変更した内容は「管理者操作」としてログに残ります。</p>
-                    </div>
+                    <div><p>管理者編集モード</p><p class="text-xs font-normal opacity-80 mt-1">ここで変更した内容は「管理者操作」としてログに残ります。</p></div>
                 </div>
                 <div v-for="(floorRooms, floor) in filteredGroupedRooms" :key="floor" class="mb-8">
                     <h3 class="font-bold text-slate-500 text-xs uppercase tracking-wider mb-2 border-b pb-1">{{ floor }}</h3>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div v-for="room in floorRooms" :key="room.id" class="bg-white rounded-xl border border-slate-300 p-4 shadow-sm">
-                            <div class="flex justify-between items-center mb-3">
-                                <h4 class="font-bold">{{ room.name }}</h4>
-                                <button @click="updateRoomDirectly(room)" class="bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-black">保存</button>
-                            </div>
+                            <div class="flex justify-between items-center mb-3"><h4 class="font-bold">{{ room.name }}</h4><button @click="updateRoomDirectly(room)" class="bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-black">保存</button></div>
                             <div class="space-y-2">
                                 <div v-for="(info, itemName) in room.items" :key="itemName" class="flex items-center gap-2 text-sm">
                                     <span class="w-20 font-bold text-slate-600 truncate">{{ itemName }}</span>
@@ -222,7 +218,6 @@
                             <div><label class="block text-xs font-bold text-slate-400 mb-1.5">TO</label><select v-model="form.toId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold outline-none"><option value="" disabled>選択...</option><option v-for="r in sortedRooms" :key="r.id" :value="r.id">{{ r.name }}</option></select></div>
                         </div>
                         <div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                            <label class="block text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">Items</label>
                             <div v-for="item in availableItems" :key="item" class="flex justify-between items-center mb-4 last:mb-0">
                                 <span class="font-bold text-slate-700 text-sm">{{ item }}</span>
                                 <div class="flex items-center bg-white shadow-sm border border-slate-200 rounded-lg h-10 overflow-hidden">
@@ -259,18 +254,22 @@
     </div>
 
     <script>
-        const { createApp, ref, computed, onMounted } = Vue;
+        const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
         createApp({
             setup() {
                 // ↓↓↓ GAS URL ↓↓↓
-                const API_URL = 'https://script.google.com/macros/s/AKfycbyPStiVX3wijbTgcHrWlt20xxs_BPp5r_vA7qyxw5VVv1GMcN49Tv6uF6grMMEEMlCa/exec';
+                const API_URL = 'https://script.google.com/macros/s/AKfycbwxYla_9yo7KOfG6SeV-5eKIgk6oIP1f4CtQannJD2wpqRlKQK7TR2UPeARHIMrd_DC/exec';
                 
                 const rooms = ref([]);
                 const availableItems = ref([]);
                 const logs = ref([]);
                 const globalLoading = ref(true);
+                const isBackgroundSyncing = ref(false); // ★New
                 const loadingMessage = ref('INITIALIZING...');
                 const notice = ref('');
+                const currentTerm = ref('');
+                const previousTerm = ref('');
+                const showTermChangeModal = ref(false);
                 
                 const isAdmin = ref(false);
                 const isSuperAdmin = ref(false);
@@ -283,13 +282,30 @@
                 
                 const currentTab = ref('view');
                 const searchQuery = ref('');
-                const filterStatus = ref('all'); // all, deficit, surplus
+                const filterStatus = ref('all');
                 
                 const cart = ref([]);
                 const showCartDetails = ref(false);
                 const form = ref({ fromId: '', toId: '', moves: {} });
+                
+                let syncInterval = null;
 
-                // Computed
+                // Persistence
+                const saveSession = () => {
+                    localStorage.setItem('skid_session', JSON.stringify({ roomName: currentRoomName.value, password: password.value, isAdmin: isAdmin.value, isSuperAdmin: isSuperAdmin.value }));
+                };
+                const restoreSession = () => {
+                    const s = localStorage.getItem('skid_session');
+                    if(s) {
+                        try {
+                            const d = JSON.parse(s);
+                            currentRoomName.value = d.roomName; password.value = d.password; isAdmin.value = d.isAdmin; isSuperAdmin.value = d.isSuperAdmin;
+                            if(isAdmin.value) currentTab.value = isSuperAdmin.value ? 'admin' : 'move';
+                        } catch(e) { localStorage.removeItem('skid_session'); }
+                    }
+                };
+                const clearSession = () => localStorage.removeItem('skid_session');
+
                 const filteredRooms = computed(() => {
                     let res = rooms.value;
                     if (searchQuery.value) { const q = searchQuery.value.toLowerCase(); res = res.filter(r => r.name.toLowerCase().includes(q) || String(r.id).toLowerCase().includes(q)); }
@@ -307,31 +323,39 @@
                 const sortedRooms = computed(() => [...rooms.value].sort((a,b)=> String(a.id).localeCompare(String(b.id))));
                 const isValid = computed(() => form.value.fromId && form.value.toId && form.value.fromId !== form.value.toId && Object.values(form.value.moves).some(v => v > 0));
 
-                const fetchData = async (force = false) => {
-                    if(force) { globalLoading.value = true; loadingMessage.value = 'SYNCING...'; }
+                const fetchData = async (force = false, background = false) => {
+                    if(!background) { globalLoading.value = true; loadingMessage.value = 'SYNCING...'; }
+                    else { isBackgroundSyncing.value = true; }
+                    
                     try {
-                        const res = await fetch(API_URL, { method: 'GET', credentials: 'omit', redirect: 'follow' });
+                        // Cache Busting
+                        const res = await fetch(API_URL + '?no_cache=' + Date.now(), { method: 'GET', credentials: 'omit', redirect: 'follow' });
                         const data = await res.json();
                         if (data.status === 'success') {
+                            if (currentTerm.value && currentTerm.value !== data.term) { 
+                                previousTerm.value = currentTerm.value; currentTerm.value = data.term; showTermChangeModal.value = true; cart.value = []; 
+                            } else { currentTerm.value = data.term; }
+                            
                             rooms.value = data.data || [];
                             availableItems.value = data.items || [];
                             logs.value = data.logs || [];
                             notice.value = data.notice || '';
                             availableItems.value.forEach(i => { if(form.value.moves[i] === undefined) form.value.moves[i] = 0; });
-                            // Prepare Admin Form
                             rooms.value.forEach(r => {
                                 if(!adminForm.value[r.id]) adminForm.value[r.id] = {};
-                                availableItems.value.forEach(i => {
-                                    adminForm.value[r.id][i] = r.items[i].current;
-                                    adminForm.value[r.id][i + '_TARGET'] = r.items[i].target;
-                                });
+                                availableItems.value.forEach(i => { adminForm.value[r.id][i] = r.items[i].current; adminForm.value[r.id][i + '_TARGET'] = r.items[i].target; });
                             });
                         }
-                    } catch (e) { console.error(e); } finally { globalLoading.value = false; }
+                    } catch (e) { console.error(e); } 
+                    finally { 
+                        globalLoading.value = false; 
+                        isBackgroundSyncing.value = false;
+                    }
                 };
 
+                const confirmTermChange = () => { showTermChangeModal.value = false; fetchData(true); };
                 const openLogin = () => {
-                    if (isAdmin.value) Swal.fire({ title: 'ログアウト', icon: 'question', showCancelButton: true }).then((r) => { if(r.isConfirmed) { isAdmin.value = false; isSuperAdmin.value = false; currentRoomName.value = ''; password.value = ''; currentTab.value = 'view'; } });
+                    if (isAdmin.value) Swal.fire({ title: 'ログアウト', icon: 'question', showCancelButton: true }).then((r) => { if(r.isConfirmed) { isAdmin.value = false; isSuperAdmin.value = false; currentRoomName.value = ''; password.value = ''; currentTab.value = 'view'; clearSession(); } });
                     else { showLoginModal.value = true; document.body.classList.add('modal-open'); }
                 };
                 const closeLogin = () => { showLoginModal.value = false; document.body.classList.remove('modal-open'); };
@@ -344,7 +368,7 @@
                         if (data.status === 'success') {
                             currentRoomName.value = loginForm.value.roomName; password.value = loginForm.value.password; isAdmin.value = true; isSuperAdmin.value = data.isAdmin;
                             currentTab.value = isSuperAdmin.value ? 'admin' : 'move';
-                            closeLogin();
+                            saveSession(); closeLogin();
                             Swal.fire({ icon: 'success', title: `Welcome, ${currentRoomName.value}`, timer: 1500, showConfirmButton: false });
                         } else throw new Error(data.message);
                     } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { isLoggingIn.value = false; }
@@ -385,13 +409,51 @@
                 };
 
                 const getFloorSummary = (rs) => { const s = {}; rs.forEach(r => { if(r.items) Object.keys(r.items).forEach(k => { if(!s[k])s[k]={diff:0}; s[k].diff+=r.items[k].diff; })}); return s; };
-                const getItemColorClass = (d) => d < 0 ? 'bg-rose-50 border-rose-200 text-rose-900' : (d > 0 ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-white border-slate-100 text-slate-400');
+                
+                // ★Highlight Logic
+                const getRoomCardClass = (room) => {
+                    if(isRoomComplete(room)) return 'border-slate-200 opacity-60 bg-white';
+                    let hasDeficit = false;
+                    let hasSurplus = false;
+                    if(room.items) {
+                        Object.values(room.items).forEach(i => {
+                            if(i.diff < 0) hasDeficit = true;
+                            if(i.diff > 0) hasSurplus = true;
+                        });
+                    }
+                    if (hasDeficit) return 'bg-rose-50 border-l-4 border-l-rose-500 shadow-md border-y-rose-100 border-r-rose-100';
+                    if (hasSurplus) return 'bg-amber-50 border-l-4 border-l-amber-500 shadow-md border-y-amber-100 border-r-amber-100';
+                    return 'bg-white border-slate-200';
+                };
+
+                const getItemColorClass = (d) => d < 0 ? 'bg-white text-rose-700 font-bold border-rose-200 shadow-sm' : (d > 0 ? 'bg-white text-amber-700 font-bold border-amber-200 shadow-sm' : 'bg-transparent border-transparent text-slate-400');
                 const isRoomComplete = (r) => r.items && Object.values(r.items).every(i => i.diff === 0);
                 const getRoomName = (id) => rooms.value.find(r => r.id === id)?.name || id;
 
-                onMounted(async () => { await fetchData(true); const params = new URLSearchParams(window.location.search); const fromId = params.get('from'); if (fromId) { form.value.fromId = fromId; showLoginModal.value = true; } });
+                onMounted(async () => {
+                    restoreSession();
+                    await fetchData(true);
+                    const params = new URLSearchParams(window.location.search);
+                    const fromId = params.get('from');
+                    if (fromId) { form.value.fromId = fromId; if(!isAdmin.value) showLoginModal.value = true; }
+                    
+                    // ★Auto Sync (Every 10 sec)
+                    syncInterval = setInterval(() => {
+                        // ランダムに少しズラしてサーバー負荷分散 (10s + 0~3s)
+                        setTimeout(() => fetchData(false, true), Math.random() * 3000);
+                    }, 10000);
+                });
+                
+                onUnmounted(() => {
+                    if(syncInterval) clearInterval(syncInterval);
+                });
 
-                return { rooms, availableItems, logs, globalLoading, loadingMessage, notice, isAdmin, isSuperAdmin, showLoginModal, loginForm, isLoggingIn, adminForm, openLogin, closeLogin, doLogin, cancelLog, updateRoomDirectly, currentTab, cart, showCartDetails, form, filteredGroupedRooms, sortedRooms, isValid, searchQuery, filterStatus, grandTotal, fetchData, updateCount, addToCart, submit, getRoomName, getFloorSummary, getItemColorClass, isRoomComplete };
+                return { 
+                    rooms, availableItems, logs, globalLoading, isBackgroundSyncing, loadingMessage, notice, currentTerm, previousTerm, showTermChangeModal, confirmTermChange,
+                    isAdmin, isSuperAdmin, showLoginModal, loginForm, isLoggingIn, adminForm, openLogin, closeLogin, doLogin, cancelLog, updateRoomDirectly, 
+                    currentTab, cart, showCartDetails, form, filteredGroupedRooms, sortedRooms, isValid, searchQuery, filterStatus, grandTotal, 
+                    fetchData, updateCount, addToCart, submit, getRoomName, getFloorSummary, getItemColorClass, isRoomComplete, getRoomCardClass 
+                };
             }
         }).mount('#app');
     </script>
