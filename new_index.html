@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.K.I.D - Asset Command</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .loader { border-top-color: #4f46e5; animation: spinner 1s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen flex flex-col text-slate-800 pb-24">
+        <div v-if="globalLoading" class="fixed inset-0 z-[100] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-12 w-12 mb-4"></div>
+            <p class="text-indigo-600 font-bold animate-pulse tracking-widest text-xs uppercase">{{ loadingMessage }}</p>
+        </div>
+        
+        <div v-if="config.notice" class="bg-amber-100 text-amber-800 px-4 py-3 text-sm font-medium text-center z-40 border-b border-amber-200 flex justify-center items-center gap-2">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+            {{ config.notice }}
+        </div>
+
+        <div v-if="!user" class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50">
+            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                <div class="bg-slate-900 p-8 text-center">
+                    <h1 class="text-3xl font-black text-white tracking-tight">S.K.I.D</h1>
+                    <p class="text-indigo-400 text-xs font-mono mt-1 tracking-widest">ASSET COMMAND V6.0</p>
+                </div>
+                <div class="p-8 space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">1. Select Floor</label>
+                        <select v-model="loginForm.floor" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="" disabled>フロアを選択</option>
+                            <option v-for="f in floorList" :key="f" :value="f">{{ f }}</option>
+                            <option value="All">SYSTEM ADMIN</option>
+                        </select>
+                    </div>
+                    <div v-if="loginForm.floor">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">2. Identity</label>
+                        <select v-model="loginForm.id" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                            <option value="" disabled>アカウントを選択</option>
+                            <option v-for="r in roomsInSelectedFloor" :key="r.id" :value="r.id">{{ r.name }}</option>
+                        </select>
+                    </div>
+                    <div v-if="loginForm.id">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">3. Password</label>
+                        <input type="password" v-model="loginForm.password" placeholder="••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
+                    <button @click="doLogin" :disabled="!canLogin" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition active:scale-[0.98]">CONNECT</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-else class="flex-1 flex flex-col">
+            <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/30 backdrop-blur-sm bg-white/90">
+                <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-lg text-white" :class="isAdmin ? 'bg-rose-600' : 'bg-slate-800'">
+                            <svg v-if="isAdmin" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                            <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                        </div>
+                        <div>
+                            <h2 class="font-bold text-slate-800 leading-tight text-sm">{{ user.name }}</h2>
+                            <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5"><span v-if="!isAdmin">{{ user.floor }} / {{ currentTerm }}</span><span v-else class="text-rose-600">{{ user.role }} MODE</span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button @click="fetchData(true)" class="p-2 bg-slate-50 border border-slate-200 rounded-full text-slate-500 hover:text-indigo-600 transition"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+                        <button @click="logout" class="p-2 bg-slate-50 border border-slate-200 rounded-full text-slate-500 hover:text-rose-600 transition"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="flex-1 max-w-6xl mx-auto w-full p-4 space-y-8">
+                <div v-if="isAdmin">
+                    <div class="space-y-3 mb-8">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Phase Control</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <div v-for="floor in adminVisibleFloors" :key="floor" class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm relative overflow-hidden">
+                                <div class="flex items-center justify-between mb-3"><span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded">{{ floor }}</span><span class="text-xs font-bold text-slate-400">Current: {{ config.floors[floor] }}</span></div>
+                                <div class="flex gap-1.5"><button v-for="t in ['Term1', 'Term2', 'Term3']" :key="t" @click="changeTerm(floor, t)" :disabled="config.floors[floor] === t" class="flex-1 py-1.5 rounded text-[10px] font-bold border transition" :class="config.floors[floor] === t ? 'bg-indigo-50 border-indigo-200 text-indigo-700 cursor-default' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">{{ t }}</button></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>Inventory Overview</h3>
+                            <div class="flex gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                                <input v-model="searchQuery" type="text" placeholder="Search..." class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-32 shrink-0">
+                                <button @click="filterStatus = 'all'" class="px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0 transition" :class="filterStatus === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'">All</button>
+                                <button @click="filterStatus = 'deficit'" class="px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0 transition" :class="filterStatus === 'deficit' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-rose-200 hover:bg-rose-50'">不足のみ</button>
+                                <button @click="filterStatus = 'surplus'" class="px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0 transition" :class="filterStatus === 'surplus' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-600 border-amber-200 hover:bg-amber-50'">過剰のみ</button>
+                            </div>
+                        </div>
+                        <div v-for="(rooms, floor) in groupedAdminRooms" :key="floor" class="mb-6">
+                            <div class="flex items-center gap-3 mb-3 sticky top-[60px] z-20 bg-[#f1f5f9]/90 backdrop-blur py-2 border-b border-slate-200/50">
+                                <span class="bg-slate-700 text-white text-xs font-black px-3 py-1 rounded-md shadow-sm">{{ floor }}</span>
+                                <div class="flex gap-2 overflow-x-auto no-scrollbar"><div v-for="(sum, name) in getFloorSummary(rooms)" :key="name" v-show="sum.diff !== 0" class="text-[10px] font-bold px-2 py-0.5 rounded border bg-white whitespace-nowrap flex items-center gap-1 shadow-sm"><span class="text-slate-500">{{ name }}</span><span :class="sum.diff < 0 ? 'text-rose-600' : 'text-emerald-600'">{{ sum.diff > 0 ? '+' : ''}}{{ sum.diff }}</span></div></div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div v-for="room in rooms" :key="room.id" class="bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition relative group" :class="getRoomStatusColor(room)">
+                                    <div class="flex justify-between items-center mb-3"><h4 class="font-bold text-slate-800 text-sm">{{ room.name }}</h4><button @click="openDirectEdit(room)" class="opacity-0 group-hover:opacity-100 transition text-[10px] bg-slate-800 text-white px-2 py-1 rounded font-bold hover:bg-black">EDIT</button></div>
+                                    <div class="space-y-1"><div v-for="(info, key) in room.items" :key="key" class="flex justify-between text-xs border-b border-slate-50 last:border-0 py-1.5"><span class="font-medium text-slate-500">{{ key }}</span><div class="font-mono"><span :class="info.diff === 0 ? 'text-slate-800' : (info.diff < 0 ? 'text-rose-600 font-bold' : 'text-amber-600 font-bold')">{{ info.current }}</span><span class="text-slate-200 mx-1">/</span><span class="text-slate-300">{{ info.target }}</span><span v-if="info.diff !== 0" class="ml-1 text-[10px] px-1 rounded" :class="info.diff < 0 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'">{{ info.diff > 0 ? '+' : '' }}{{ info.diff }}</span></div></div></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="Object.keys(groupedAdminRooms).length === 0" class="text-center py-20 text-slate-400 font-bold">No rooms match your filter.</div>
+                    </div>
+                </div>
+
+                <div v-else class="space-y-8">
+                    <div>
+                        <h3 class="flex items-center gap-2 font-bold text-slate-800 text-sm uppercase tracking-widest mb-4"><svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>My Assignments <span v-if="myMissions.length > 0" class="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full ml-2">{{ myMissions.length }}</span></h3>
+                        <div v-if="myMissions.length === 0" class="bg-slate-50 border border-slate-200 rounded-xl p-8 text-center flex flex-col items-center"><div class="bg-white p-3 rounded-full shadow-sm mb-3"><svg class="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div><p class="font-bold text-slate-600">All Clear</p><p class="text-xs text-slate-400 mt-1">割り当てられたタスクはありません</p></div>
+                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div v-for="m in myMissions" :key="m.rowIndex" class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 relative overflow-hidden transition hover:shadow-md">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
+                                <div class="flex justify-between items-start mb-4 pl-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg></div>
+                                        <div><div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">TASK</div><div class="font-bold text-lg text-slate-800 leading-none">{{ getRoomName(m.from) }} <span class="text-slate-300 text-sm">➜</span> {{ getRoomName(m.to) }}</div></div>
+                                    </div>
+                                </div>
+                                <div class="pl-3 mb-5">
+                                    <div class="flex items-baseline justify-between border-b border-slate-50 pb-2"><span class="font-bold text-slate-600 text-sm">{{ m.item }}</span><div class="flex items-baseline"><span class="font-black text-2xl text-slate-800">{{ m.amount }}</span><span class="text-xs text-slate-400 ml-1 font-bold">pcs</span></div></div>
+                                </div>
+                                
+                                <button 
+                                    @click="completeMission(m)" 
+                                    :disabled="processingMissions.has(m.rowIndex)"
+                                    class="w-full py-3 rounded-lg font-bold text-white text-sm shadow-md active:scale-95 transition flex items-center justify-center gap-2 ml-1"
+                                    :class="processingMissions.has(m.rowIndex) ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'"
+                                >
+                                    <span v-if="processingMissions.has(m.rowIndex)" class="loader w-4 h-4 border-2 border-t-2 border-white/50 border-t-white rounded-full animate-spin"></span>
+                                    <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                    <span>{{ processingMissions.has(m.rowIndex) ? 'SENDING...' : '完了報告 (Complete)' }}</span>
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-2">
+                            <h3 class="flex items-center gap-2 font-bold text-slate-800 text-sm uppercase tracking-widest"><svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>Current Inventory</h3>
+                            <button @click="openDirectEdit(myRoom)" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-full transition border border-indigo-100"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>手動修正</button>
+                        </div>
+                        <div v-if="!myRoom" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl text-center font-bold text-sm">Error: Room Data Not Found</div>
+                        <div v-else class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <div v-for="(info, key) in myRoom.items" :key="key" class="p-3 rounded-xl border flex flex-col items-center justify-center text-center transition" :class="getItemStatusClass(info.diff)">
+                                    <div class="text-xs font-bold opacity-60 mb-1">{{ key }}</div>
+                                    <div class="font-black text-3xl mb-1 tracking-tight">{{ info.current }}</div>
+                                    <div class="text-[10px] text-slate-400 font-medium mb-2">Goal: {{ info.target }}</div>
+                                    <div v-if="info.diff !== 0" class="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" :class="info.diff > 0 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'"><span>{{ info.diff > 0 ? '+' : ''}}{{ info.diff }}</span></div>
+                                    <div v-else class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">MATCH</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <transition name="fade">
+            <div v-if="showEditModal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <transition name="slide-up">
+                    <div v-if="showEditModal" class="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
+                        <div class="flex justify-between items-center mb-6 shrink-0">
+                            <div><h3 class="text-lg font-bold text-slate-800">Inventory Adjustment</h3><p class="text-xs text-slate-400 font-mono">{{ editTargetRoom?.name }}</p></div>
+                            <button @click="showEditModal = false" class="text-slate-400 bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition">✕</button>
+                        </div>
+                        <div class="flex-1 overflow-y-auto space-y-3 p-1">
+                            <div v-for="(val, key) in editForm" :key="key" class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100"><span class="font-bold text-slate-700 text-sm">{{ key }}</span><div class="flex items-center gap-2"><button @click="editForm[key] = Math.max(0, editForm[key]-1)" class="w-8 h-8 flex items-center justify-center bg-white border rounded-lg shadow-sm text-slate-500 font-bold active:scale-90 transition hover:border-indigo-200">-</button><input type="number" v-model="editForm[key]" class="w-12 text-center bg-transparent font-bold text-lg outline-none text-slate-800"><button @click="editForm[key]++" class="w-8 h-8 flex items-center justify-center bg-white border rounded-lg shadow-sm text-indigo-600 font-bold active:scale-90 transition hover:border-indigo-200">+</button></div></div>
+                        </div>
+                        <div class="mt-6 shrink-0"><button @click="submitEdit" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition hover:bg-black">Confirm Changes</button></div>
+                    </div>
+                </transition>
+            </div>
+        </transition>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
+        createApp({
+            setup() {
+                const API_URL = 'https://script.google.com/macros/s/AKfycbxQ17bS5ymV1NjrvdMgYUrORBZz9zOiw6eTck13amUkJRGwFNnT6R7umEnvxSjG6SbX/exec';
+                
+                const globalLoading = ref(true);
+                const loadingMessage = ref('CONNECTING...');
+                // ★ Processing Set (Local Block)
+                const processingMissions = reactive(new Set());
+
+                const rooms = ref([]);
+                const movements = ref([]);
+                const config = ref({ notice: '', floors: {} });
+                const items = ref([]);
+                const user = ref(null);
+                const loginForm = ref({ floor: '', id: '', password: '' });
+                const showEditModal = ref(false);
+                const editTargetRoom = ref(null);
+                const editForm = ref({});
+                const searchQuery = ref('');
+                const filterStatus = ref('all');
+                let syncInterval = null;
+
+                const floorList = computed(() => { const floors = new Set(rooms.value.map(r => r.floor).filter(f => f)); return Array.from(floors).sort(); });
+                const roomsInSelectedFloor = computed(() => { if (loginForm.value.floor === 'All') return [{ id: 'Admin', name: 'SYSTEM ADMIN' }]; return rooms.value.filter(r => r.floor === loginForm.value.floor); });
+                const canLogin = computed(() => loginForm.value.floor && loginForm.value.id && loginForm.value.password);
+                const isAdmin = computed(() => user.value && (user.value.role === 'FloorAdmin' || user.value.role === 'SuperAdmin'));
+                const currentTerm = computed(() => { if (!user.value) return ''; if (user.value.floor === 'All') return 'ADMIN VIEW'; return (config.value && config.value.floors && config.value.floors[user.value.floor]) || 'Unknown'; });
+                const myRoom = computed(() => { if (!user.value) return null; return rooms.value.find(r => String(r.id) === String(user.value.id)); });
+
+                const myMissions = computed(() => {
+                    if (!user.value) return [];
+                    const myCurrentTerm = config.value.floors ? (config.value.floors[user.value.floor] || 'Term1') : 'Term1';
+                    return movements.value.filter(m => {
+                        const isNotDone = m.status === '未';
+                        const isAssigned = String(m.assignee).trim() === String(user.value.id).trim();
+                        const isCurrentTerm = m.term === myCurrentTerm;
+                        return isNotDone && isAssigned && isCurrentTerm;
+                    });
+                });
+
+                const adminVisibleFloors = computed(() => { if (!user.value) return []; if (user.value.role === 'SuperAdmin') return floorList.value; if (user.value.role === 'FloorAdmin') return [user.value.floor]; return []; });
+                const groupedAdminRooms = computed(() => {
+                    if (!user.value) return {};
+                    let targetRooms = [];
+                    if (user.value.role === 'SuperAdmin') targetRooms = rooms.value; else if (user.value.role === 'FloorAdmin') targetRooms = rooms.value.filter(r => r.floor === user.value.floor);
+                    targetRooms = targetRooms.filter(r => !String(r.id).startsWith('a_'));
+                    const q = searchQuery.value.toLowerCase();
+                    targetRooms = targetRooms.filter(r => {
+                        const matchesSearch = r.name.toLowerCase().includes(q) || String(r.id).toLowerCase().includes(q);
+                        let matchesStatus = true;
+                        if (filterStatus.value === 'deficit') matchesStatus = Object.values(r.items).some(i => i.diff < 0);
+                        else if (filterStatus.value === 'surplus') matchesStatus = Object.values(r.items).some(i => i.diff > 0);
+                        return matchesSearch && matchesStatus;
+                    });
+                    const groups = {}; targetRooms.forEach(r => { if (!groups[r.floor]) groups[r.floor] = []; groups[r.floor].push(r); });
+                    return Object.keys(groups).sort().reduce((obj, key) => { obj[key] = groups[key]; return obj; }, {});
+                });
+
+                const fetchData = async (force = false, background = false) => {
+                    if (!background) { globalLoading.value = true; loadingMessage.value = 'SYNCING...'; }
+                    try {
+                        const res = await fetch(API_URL + '?no_cache=' + Date.now());
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            rooms.value = data.rooms || [];
+                            movements.value = data.movements || [];
+                            config.value = data.config || { notice: '', floors: {} };
+                            items.value = data.items || [];
+                        }
+                    } catch (e) { console.error(e); } finally { globalLoading.value = false; }
+                };
+                const doLogin = async () => {
+                    globalLoading.value = true; loadingMessage.value = 'VERIFYING...';
+                    try {
+                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'check_auth', userId: loginForm.value.id, password: loginForm.value.password }) });
+                        const data = await res.json();
+                        if (data.status === 'success' && data.user) { user.value = data.user; localStorage.setItem('skid_v60_user', JSON.stringify({ ...data.user, password: loginForm.value.password })); } else { Swal.fire('Login Failed', 'IDまたはパスワードが違います', 'error'); }
+                    } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; }
+                };
+                const logout = () => { user.value = null; localStorage.removeItem('skid_v60_user'); loginForm.value = { floor: '', id: '', password: '' }; };
+                
+                // ★ SAFE COMPLETE (Local Lock + ID Check)
+                const completeMission = async (mission) => {
+                    // 1. ローカルでの重複防止
+                    if (processingMissions.has(mission.rowIndex)) return;
+
+                    const text = `${mission.amount}個の移動を完了しましたか？`;
+                    const confirm = await Swal.fire({ title: '確認', text: text, icon: 'question', showCancelButton: true, confirmButtonColor:'#4f46e5' });
+                    
+                    if(confirm.isConfirmed) {
+                        // 2. ボタンを即座にDisabledにする
+                        processingMissions.add(mission.rowIndex);
+                        // globalLoadingは出さない（個別のスピナーで表現するから）
+                        
+                        try {
+                            const res = await fetch(API_URL, { 
+                                method: 'POST', credentials: 'omit', 
+                                // missionId (ID) も送ってバックエンドで整合性チェック
+                                body: JSON.stringify({ action: 'complete_movement', rowIndex: mission.rowIndex, missionId: mission.id, userId: user.value.id, password: getStoredPassword() }) 
+                            });
+                            const data = await res.json();
+                            if (data.status === 'success') { 
+                                Swal.fire({ icon: 'success', title: '完了', timer: 1000, showConfirmButton: false });
+                                fetchData(true, true); // バックグラウンド更新
+                            } else {
+                                throw new Error(data.message);
+                            }
+                        } catch (e) { 
+                            Swal.fire('Error', e.message, 'error'); 
+                        } finally { 
+                            // 3. 処理が終わったらロック解除
+                            processingMissions.delete(mission.rowIndex); 
+                        }
+                    }
+                };
+
+                const openDirectEdit = (room) => { if(!room) return; editTargetRoom.value = room; editForm.value = {}; items.value.forEach(key => editForm.value[key] = room.items[key] ? room.items[key].current : 0); showEditModal.value = true; };
+                const submitEdit = async () => { if (!confirm('在庫数を直接上書きします。よろしいですか？')) return; globalLoading.value = true; try { const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'direct_update', roomId: editTargetRoom.value.id, updates: editForm.value, userId: user.value.id, password: getStoredPassword() }) }); if ((await res.json()).status === 'success') { showEditModal.value = false; Swal.fire('修正完了', '', 'success'); fetchData(true); } } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; } };
+                const changeTerm = async (targetFloor, newTerm) => { if (!confirm(`${targetFloor} の進行を ${newTerm} に変更しますか？`)) return; globalLoading.value = true; try { const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'change_term', targetFloor: targetFloor, newTerm: newTerm, userId: user.value.id, password: getStoredPassword() }) }); if ((await res.json()).status === 'success') { Swal.fire('変更完了', '', 'success'); fetchData(true); } } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; } };
+                const getStoredPassword = () => { try { return JSON.parse(localStorage.getItem('skid_v60_user')).password; } catch(e) { return ''; } };
+                const getRoomName = (id) => { const r = rooms.value.find(r => String(r.id) === String(id)); return r ? r.name : id; };
+                const getFloorSummary = (rooms) => { const sum = {}; rooms.forEach(r => { Object.keys(r.items).forEach(k => { if(!sum[k]) sum[k] = {diff:0}; sum[k].diff += r.items[k].diff; }); }); return sum; };
+                const getItemStatusClass = (diff) => { if (diff < 0) return 'bg-rose-50 border-rose-200 text-rose-800'; if (diff > 0) return 'bg-amber-50 border-amber-200 text-amber-800'; return 'bg-white border-slate-100 text-slate-600'; };
+                const getRoomStatusColor = (room) => { let hasDeficit = false, hasSurplus = false; Object.values(room.items).forEach(i => { if(i.diff < 0) hasDeficit = true; if(i.diff > 0) hasSurplus = true; }); if (hasDeficit) return 'border-l-4 border-l-rose-500'; if (hasSurplus) return 'border-l-4 border-l-amber-500'; return 'border-l-4 border-l-emerald-500'; };
+
+                onMounted(async () => { const stored = localStorage.getItem('skid_v60_user'); if (stored) { try { user.value = JSON.parse(stored); loginForm.value.password = user.value.password; } catch(e) {} } await fetchData(true); syncInterval = setInterval(() => fetchData(false, true), 10000); });
+                onUnmounted(() => { if(syncInterval) clearInterval(syncInterval); });
+
+                return {
+                    globalLoading, loadingMessage, config, user, loginForm, rooms, myMissions, myRoom, 
+                    floorList, roomsInSelectedFloor, canLogin, currentTerm, isAdmin, adminVisibleFloors, groupedAdminRooms,
+                    showEditModal, editTargetRoom, editForm, searchQuery, filterStatus, processingMissions,
+                    fetchData, doLogin, logout, completeMission, openDirectEdit, submitEdit, changeTerm,
+                    getRoomName, getItemStatusClass, getRoomStatusColor, getFloorSummary
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
