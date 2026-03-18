@@ -34,7 +34,7 @@
             <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
                 <div class="bg-slate-900 p-8 text-center">
                     <h1 class="text-3xl font-black text-white tracking-tight">S.K.I.D</h1>
-                    <p class="text-indigo-400 text-xs font-mono mt-1 tracking-widest">ASSET COMMAND V6.0</p>
+                    <p class="text-indigo-400 text-xs font-mono mt-1 tracking-widest">ASSET COMMAND V.FINAL-PRO</p>
                 </div>
                 <div class="p-8 space-y-6">
                     <div>
@@ -56,7 +56,7 @@
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-2">3. Password</label>
                         <input type="password" v-model="loginForm.password" placeholder="••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition">
                     </div>
-                    <button @click="doLogin" :disabled="!canLogin" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed transition active:scale-[0.98]">CONNECT</button>
+                    <button @click="doLogin" :disabled="!canLogin" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:opacity-50 transition active:scale-[0.98]">CONNECT</button>
                 </div>
             </div>
         </div>
@@ -71,7 +71,10 @@
                         </div>
                         <div>
                             <h2 class="font-bold text-slate-800 leading-tight text-sm">{{ user.name }}</h2>
-                            <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5"><span v-if="!isAdmin">{{ user.floor }} / {{ currentTerm }}</span><span v-else class="text-rose-600">{{ user.role }} MODE</span></p>
+                            <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">
+                                <span v-if="!isAdmin">{{ user.floor }} / {{ currentTerm }}</span>
+                                <span v-else class="text-rose-600">{{ user.role }} MODE</span>
+                            </p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -83,15 +86,27 @@
 
             <main class="flex-1 max-w-6xl mx-auto w-full p-4 space-y-8">
                 <div v-if="isAdmin">
+                    <div v-if="user.role === 'SuperAdmin'" class="bg-indigo-50 rounded-xl border border-indigo-200 p-5 mb-8 shadow-sm">
+                        <h3 class="text-xs font-bold text-indigo-700 uppercase tracking-widest flex items-center gap-2 mb-4"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>Mission Generator</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <button @click="generateMissions('setup')" class="bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 active:scale-95 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>準備ミッション生成 (開始時➜終了時)</button>
+                            <button @click="generateMissions('teardown')" class="bg-rose-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-rose-700 active:scale-95 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>復元ミッション生成 (終了時➜開始時)</button>
+                        </div>
+                        <p class="text-[10px] text-indigo-500 mt-3 font-bold">※実行すると現在のMovementsシートは全消去され、新しい指示書で上書きされます。</p>
+                    </div>
+
                     <div class="space-y-3 mb-8">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Phase Control</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                             <div v-for="floor in adminVisibleFloors" :key="floor" class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm relative overflow-hidden">
                                 <div class="flex items-center justify-between mb-3"><span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded">{{ floor }}</span><span class="text-xs font-bold text-slate-400">Current: {{ config.floors[floor] }}</span></div>
-                                <div class="flex gap-1.5"><button v-for="t in ['Term1', 'Term2', 'Term3']" :key="t" @click="changeTerm(floor, t)" :disabled="config.floors[floor] === t" class="flex-1 py-1.5 rounded text-[10px] font-bold border transition" :class="config.floors[floor] === t ? 'bg-indigo-50 border-indigo-200 text-indigo-700 cursor-default' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">{{ t }}</button></div>
+                                <div class="flex gap-1.5 flex-wrap">
+                                    <button v-for="t in ['Term1', 'Term2', 'Term3']" :key="t" @click="changeTerm(floor, t)" :disabled="config.floors[floor] === t" class="flex-1 py-1.5 rounded text-[10px] font-bold border transition" :class="config.floors[floor] === t ? 'bg-indigo-50 border-indigo-200 text-indigo-700 cursor-default' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">{{ t }}</button>
+                                </div>
                             </div>
                         </div>
                     </div>
+
                     <div class="space-y-4">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>Inventory Overview</h3>
@@ -105,6 +120,10 @@
                         <div v-for="(rooms, floor) in groupedAdminRooms" :key="floor" class="mb-6">
                             <div class="flex items-center gap-3 mb-3 sticky top-[60px] z-20 bg-[#f1f5f9]/90 backdrop-blur py-2 border-b border-slate-200/50">
                                 <span class="bg-slate-700 text-white text-xs font-black px-3 py-1 rounded-md shadow-sm">{{ floor }}</span>
+                                <select v-model="viewTargetModes[floor]" class="bg-indigo-50 border border-indigo-200 rounded text-[10px] font-bold text-indigo-700 px-2 py-1 outline-none cursor-pointer shadow-sm">
+                                    <option value="term">判定: 現フェーズ ({{ config.floors[floor] || 'Term1' }})</option>
+                                    <option value="final">判定: 最終目標</option>
+                                </select>
                                 <div class="flex gap-2 overflow-x-auto no-scrollbar"><div v-for="(sum, name) in getFloorSummary(rooms)" :key="name" v-show="sum.diff !== 0" class="text-[10px] font-bold px-2 py-0.5 rounded border bg-white whitespace-nowrap flex items-center gap-1 shadow-sm"><span class="text-slate-500">{{ name }}</span><span :class="sum.diff < 0 ? 'text-rose-600' : 'text-emerald-600'">{{ sum.diff > 0 ? '+' : ''}}{{ sum.diff }}</span></div></div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -114,7 +133,6 @@
                                 </div>
                             </div>
                         </div>
-                        <div v-if="Object.keys(groupedAdminRooms).length === 0" class="text-center py-20 text-slate-400 font-bold">No rooms match your filter.</div>
                     </div>
                 </div>
 
@@ -134,24 +152,24 @@
                                 <div class="pl-3 mb-5">
                                     <div class="flex items-baseline justify-between border-b border-slate-50 pb-2"><span class="font-bold text-slate-600 text-sm">{{ m.item }}</span><div class="flex items-baseline"><span class="font-black text-2xl text-slate-800">{{ m.amount }}</span><span class="text-xs text-slate-400 ml-1 font-bold">pcs</span></div></div>
                                 </div>
-                                
-                                <button 
-                                    @click="completeMission(m)" 
-                                    :disabled="processingMissions.has(m.rowIndex)"
-                                    class="w-full py-3 rounded-lg font-bold text-white text-sm shadow-md active:scale-95 transition flex items-center justify-center gap-2 ml-1"
-                                    :class="processingMissions.has(m.rowIndex) ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'"
-                                >
+                                <button @click="completeMission(m)" :disabled="processingMissions.has(m.rowIndex)" class="w-full py-3 rounded-lg font-bold text-white text-sm shadow-md active:scale-95 transition flex items-center justify-center gap-2 ml-1" :class="processingMissions.has(m.rowIndex) ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'">
                                     <span v-if="processingMissions.has(m.rowIndex)" class="loader w-4 h-4 border-2 border-t-2 border-white/50 border-t-white rounded-full animate-spin"></span>
                                     <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
                                     <span>{{ processingMissions.has(m.rowIndex) ? 'SENDING...' : '完了報告 (Complete)' }}</span>
                                 </button>
-
                             </div>
                         </div>
                     </div>
                     <div>
                         <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-2">
-                            <h3 class="flex items-center gap-2 font-bold text-slate-800 text-sm uppercase tracking-widest"><svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>Current Inventory</h3>
+                            <h3 class="flex items-center gap-2 font-bold text-slate-800 text-sm uppercase tracking-widest">
+                                <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                Current Inventory
+                                <select v-model="viewTargetModes[user.floor]" class="ml-3 bg-indigo-50 border border-indigo-200 rounded text-[10px] font-bold text-indigo-700 px-2 py-1 outline-none cursor-pointer shadow-sm">
+                                    <option value="term">判定: 現フェーズ ({{ currentTerm }})</option>
+                                    <option value="final">判定: 最終目標</option>
+                                </select>
+                            </h3>
                             <button @click="openDirectEdit(myRoom)" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-full transition border border-indigo-100"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>手動修正</button>
                         </div>
                         <div v-if="!myRoom" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl text-center font-bold text-sm">Error: Room Data Not Found</div>
@@ -193,16 +211,15 @@
         const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
         createApp({
             setup() {
-                const API_URL = 'https://script.google.com/macros/s/AKfycbxyFlK2etIKmMApuO_PMdGtnGMi2G6eEIRHmIhbsoKuCzjswc4jkV8qRUtJeR_qpfEi/exec';
+                const API_URL = 'https://script.google.com/macros/s/AKfycbxdMcWEiXSkZ2HYiCkLAu5pxOz8FoX9xZUuqCIquuiWJrdKwvFUg_JYTr7aCGcUPAkB/exec';
                 
                 const globalLoading = ref(true);
                 const loadingMessage = ref('CONNECTING...');
-                // ★ Processing Set (Local Block)
                 const processingMissions = reactive(new Set());
 
                 const rooms = ref([]);
                 const movements = ref([]);
-                const config = ref({ notice: '', floors: {} });
+                const config = ref({ notice: '', targetMode: '終了時', floors: {} });
                 const items = ref([]);
                 const user = ref(null);
                 const loginForm = ref({ floor: '', id: '', password: '' });
@@ -211,14 +228,42 @@
                 const editForm = ref({});
                 const searchQuery = ref('');
                 const filterStatus = ref('all');
-                let syncInterval = null;
+                
+                // ★ 各フロアごとのターゲットモードを保持 ('term' | 'final')
+                const viewTargetModes = reactive({});
+                let fetchTimerId = null;
+                let errorCount = 0;
 
                 const floorList = computed(() => { const floors = new Set(rooms.value.map(r => r.floor).filter(f => f)); return Array.from(floors).sort(); });
                 const roomsInSelectedFloor = computed(() => { if (loginForm.value.floor === 'All') return [{ id: 'Admin', name: 'SYSTEM ADMIN' }]; return rooms.value.filter(r => r.floor === loginForm.value.floor); });
                 const canLogin = computed(() => loginForm.value.floor && loginForm.value.id && loginForm.value.password);
                 const isAdmin = computed(() => user.value && (user.value.role === 'FloorAdmin' || user.value.role === 'SuperAdmin'));
                 const currentTerm = computed(() => { if (!user.value) return ''; if (user.value.floor === 'All') return 'ADMIN VIEW'; return (config.value && config.value.floors && config.value.floors[user.value.floor]) || 'Unknown'; });
-                const myRoom = computed(() => { if (!user.value) return null; return rooms.value.find(r => String(r.id) === String(user.value.id)); });
+
+                // ★ ここで「画面表示用」のデータ配列を動的に生成する
+                const displayRooms = computed(() => {
+                    return rooms.value.map(r => {
+                        const floorMode = viewTargetModes[r.floor] || 'term';
+                        const newItems = {};
+                        for (const key of Object.keys(r.items)) {
+                            let targetVal = r.targets.final[key]; 
+                            
+                            // 現フェーズ(term)指定 ＆ そのタームの目標値が存在する場合
+                            if (floorMode === 'term' && r.targets && r.targets[r.currentTerm] !== undefined) {
+                                targetVal = r.targets[r.currentTerm][key] ?? targetVal;
+                            }
+
+                            newItems[key] = {
+                                current: r.items[key].current,
+                                target: targetVal,
+                                diff: r.items[key].current - targetVal // 動的に差分を再計算
+                            };
+                        }
+                        return { ...r, items: newItems };
+                    });
+                });
+
+                const myRoom = computed(() => { if (!user.value) return null; return displayRooms.value.find(r => String(r.id) === String(user.value.id)); });
 
                 const myMissions = computed(() => {
                     if (!user.value) return [];
@@ -235,7 +280,10 @@
                 const groupedAdminRooms = computed(() => {
                     if (!user.value) return {};
                     let targetRooms = [];
-                    if (user.value.role === 'SuperAdmin') targetRooms = rooms.value; else if (user.value.role === 'FloorAdmin') targetRooms = rooms.value.filter(r => r.floor === user.value.floor);
+                    // ★ 生データ(rooms)ではなく表示用データ(displayRooms)を使う
+                    if (user.value.role === 'SuperAdmin') targetRooms = displayRooms.value; 
+                    else if (user.value.role === 'FloorAdmin') targetRooms = displayRooms.value.filter(r => r.floor === user.value.floor);
+                    
                     targetRooms = targetRooms.filter(r => !String(r.id).startsWith('a_'));
                     const q = searchQuery.value.toLowerCase();
                     targetRooms = targetRooms.filter(r => {
@@ -257,73 +305,100 @@
                         if (data.status === 'success') {
                             rooms.value = data.rooms || [];
                             movements.value = data.movements || [];
-                            config.value = data.config || { notice: '', floors: {} };
+                            config.value = data.config || { notice: '', targetMode: '終了時', floors: {} };
                             items.value = data.items || [];
+                            return true; 
                         }
-                    } catch (e) { console.error(e); } finally { globalLoading.value = false; }
+                    } catch (e) { console.error(e); return false; } finally { globalLoading.value = false; }
                 };
+
+                const startAutoSync = () => {
+                    if (fetchTimerId) clearTimeout(fetchTimerId);
+                    const nextSync = () => {
+                        const baseDelay = 15000;
+                        const jitter = Math.random() * 5000; 
+                        const backoff = Math.min(errorCount * 5000, 30000); 
+                        fetchTimerId = setTimeout(async () => {
+                            const success = await fetchData(false, true);
+                            if (success) errorCount = 0; else errorCount++;
+                            nextSync(); 
+                        }, baseDelay + jitter + backoff);
+                    };
+                    nextSync();
+                };
+
+                const stopAutoSync = () => { if (fetchTimerId) { clearTimeout(fetchTimerId); fetchTimerId = null; } };
+
                 const doLogin = async () => {
                     globalLoading.value = true; loadingMessage.value = 'VERIFYING...';
                     try {
                         const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'check_auth', userId: loginForm.value.id, password: loginForm.value.password }) });
                         const data = await res.json();
-                        if (data.status === 'success' && data.user) { user.value = data.user; localStorage.setItem('skid_v60_user', JSON.stringify({ ...data.user, password: loginForm.value.password })); } else { Swal.fire('Login Failed', 'IDまたはパスワードが違います', 'error'); }
+                        if (data.status === 'success' && data.user) { 
+                            user.value = data.user; 
+                            localStorage.setItem('skid_vfinal_user', JSON.stringify({ ...data.user, password: loginForm.value.password })); 
+                            startAutoSync(); 
+                        } else { Swal.fire('Login Failed', 'IDまたはパスワードが違います', 'error'); }
                     } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; }
                 };
-                const logout = () => { user.value = null; localStorage.removeItem('skid_v60_user'); loginForm.value = { floor: '', id: '', password: '' }; };
                 
-                // ★ SAFE COMPLETE (Local Lock + ID Check)
+                const logout = () => { user.value = null; localStorage.removeItem('skid_vfinal_user'); loginForm.value = { floor: '', id: '', password: '' }; stopAutoSync(); };
+                
                 const completeMission = async (mission) => {
-                    // 1. ローカルでの重複防止
                     if (processingMissions.has(mission.rowIndex)) return;
-
                     const text = `${mission.amount}個の移動を完了しましたか？`;
                     const confirm = await Swal.fire({ title: '確認', text: text, icon: 'question', showCancelButton: true, confirmButtonColor:'#4f46e5' });
-                    
                     if(confirm.isConfirmed) {
-                        // 2. ボタンを即座にDisabledにする
                         processingMissions.add(mission.rowIndex);
-                        // globalLoadingは出さない（個別のスピナーで表現するから）
-                        
                         try {
-                            const res = await fetch(API_URL, { 
-                                method: 'POST', credentials: 'omit', 
-                                // missionId (ID) も送ってバックエンドで整合性チェック
-                                body: JSON.stringify({ action: 'complete_movement', rowIndex: mission.rowIndex, missionId: mission.id, userId: user.value.id, password: getStoredPassword() }) 
-                            });
+                            const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'complete_movement', rowIndex: mission.rowIndex, missionId: mission.id, userId: user.value.id, password: getStoredPassword() }) });
                             const data = await res.json();
-                            if (data.status === 'success') { 
-                                Swal.fire({ icon: 'success', title: '完了', timer: 1000, showConfirmButton: false });
-                                fetchData(true, true); // バックグラウンド更新
-                            } else {
-                                throw new Error(data.message);
-                            }
-                        } catch (e) { 
-                            Swal.fire('Error', e.message, 'error'); 
-                        } finally { 
-                            // 3. 処理が終わったらロック解除
-                            processingMissions.delete(mission.rowIndex); 
-                        }
+                            if (data.status === 'success') { Swal.fire({ icon: 'success', title: '完了', timer: 1000, showConfirmButton: false }); await fetchData(true, true); } else { throw new Error(data.message); }
+                        } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { processingMissions.delete(mission.rowIndex); }
                     }
                 };
 
                 const openDirectEdit = (room) => { if(!room) return; editTargetRoom.value = room; editForm.value = {}; items.value.forEach(key => editForm.value[key] = room.items[key] ? room.items[key].current : 0); showEditModal.value = true; };
                 const submitEdit = async () => { if (!confirm('在庫数を直接上書きします。よろしいですか？')) return; globalLoading.value = true; try { const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'direct_update', roomId: editTargetRoom.value.id, updates: editForm.value, userId: user.value.id, password: getStoredPassword() }) }); if ((await res.json()).status === 'success') { showEditModal.value = false; Swal.fire('修正完了', '', 'success'); fetchData(true); } } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; } };
                 const changeTerm = async (targetFloor, newTerm) => { if (!confirm(`${targetFloor} の進行を ${newTerm} に変更しますか？`)) return; globalLoading.value = true; try { const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'change_term', targetFloor: targetFloor, newTerm: newTerm, userId: user.value.id, password: getStoredPassword() }) }); if ((await res.json()).status === 'success') { Swal.fire('変更完了', '', 'success'); fetchData(true); } } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; } };
-                const getStoredPassword = () => { try { return JSON.parse(localStorage.getItem('skid_v60_user')).password; } catch(e) { return ''; } };
-                const getRoomName = (id) => { const r = rooms.value.find(r => String(r.id) === String(id)); return r ? r.name : id; };
+                
+                const generateMissions = async (mode) => {
+                    const modeText = mode === 'setup' ? '準備用 (開始時➜終了時)' : '復元用 (終了時➜開始時)';
+                    const confirm = await Swal.fire({ title: '自動生成を実行しますか？', text: `現在のMovementsシートの指示はすべて消去され、${modeText}の指示で上書きされます。`, icon: 'warning', showCancelButton: true, confirmButtonColor:'#d33' });
+                    if(confirm.isConfirmed) {
+                        globalLoading.value = true; loadingMessage.value = 'GENERATING...';
+                        try {
+                            const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'generate_movements', mode: mode, userId: user.value.id, password: getStoredPassword() }) });
+                            const data = await res.json();
+                            if (data.status === 'success') { Swal.fire('生成完了', data.message, 'success'); fetchData(true); } else { throw new Error(data.message); }
+                        } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; }
+                    }
+                };
+
+                const getStoredPassword = () => { try { return JSON.parse(localStorage.getItem('skid_vfinal_user')).password; } catch(e) { return ''; } };
+                const getRoomName = (id) => { const r = displayRooms.value.find(r => String(r.id) === String(id)); return r ? r.name : id; };
                 const getFloorSummary = (rooms) => { const sum = {}; rooms.forEach(r => { Object.keys(r.items).forEach(k => { if(!sum[k]) sum[k] = {diff:0}; sum[k].diff += r.items[k].diff; }); }); return sum; };
                 const getItemStatusClass = (diff) => { if (diff < 0) return 'bg-rose-50 border-rose-200 text-rose-800'; if (diff > 0) return 'bg-amber-50 border-amber-200 text-amber-800'; return 'bg-white border-slate-100 text-slate-600'; };
                 const getRoomStatusColor = (room) => { let hasDeficit = false, hasSurplus = false; Object.values(room.items).forEach(i => { if(i.diff < 0) hasDeficit = true; if(i.diff > 0) hasSurplus = true; }); if (hasDeficit) return 'border-l-4 border-l-rose-500'; if (hasSurplus) return 'border-l-4 border-l-amber-500'; return 'border-l-4 border-l-emerald-500'; };
 
-                onMounted(async () => { const stored = localStorage.getItem('skid_v60_user'); if (stored) { try { user.value = JSON.parse(stored); loginForm.value.password = user.value.password; } catch(e) {} } await fetchData(true); syncInterval = setInterval(() => fetchData(false, true), 10000); });
-                onUnmounted(() => { if(syncInterval) clearInterval(syncInterval); });
+                onMounted(async () => { 
+                    const stored = localStorage.getItem('skid_vfinal_user'); 
+                    if (stored) { 
+                        try { 
+                            user.value = JSON.parse(stored); 
+                            loginForm.value.password = user.value.password; 
+                            startAutoSync(); 
+                        } catch(e) {} 
+                    } 
+                    await fetchData(true); 
+                });
+                onUnmounted(() => { stopAutoSync(); });
 
                 return {
-                    globalLoading, loadingMessage, config, user, loginForm, rooms, myMissions, myRoom, 
+                    globalLoading, loadingMessage, config, user, loginForm, rooms: displayRooms, myMissions, myRoom, 
                     floorList, roomsInSelectedFloor, canLogin, currentTerm, isAdmin, adminVisibleFloors, groupedAdminRooms,
-                    showEditModal, editTargetRoom, editForm, searchQuery, filterStatus, processingMissions,
-                    fetchData, doLogin, logout, completeMission, openDirectEdit, submitEdit, changeTerm,
+                    showEditModal, editTargetRoom, editForm, searchQuery, filterStatus, processingMissions, viewTargetModes,
+                    fetchData, doLogin, logout, completeMission, openDirectEdit, submitEdit, changeTerm, generateMissions,
                     getRoomName, getItemStatusClass, getRoomStatusColor, getFloorSummary
                 };
             }
