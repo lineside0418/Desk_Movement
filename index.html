@@ -2,150 +2,298 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>S.K.I.D - Asset Command</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>机移動システム</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body { 
+            font-family: var(--apple-font); 
+            background-color: #FBFBFD;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            color: #1D1D1F;
+        }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        .loader { border-top-color: #4f46e5; animation: spinner 1s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        ::-webkit-scrollbar-thumb { background: #D2D2D7; border-radius: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Bento UI */
+        .bento-card {
+            background: #FFFFFF;
+            border-radius: 24px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border 0.2s ease;
+        }
+        .bento-card:hover {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        }
+
+        /* アニメーション */
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        
+        .slide-up-enter-active, .slide-up-leave-active { transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .slide-up-enter-from, .slide-up-leave-to { transform: translateY(20px); opacity: 0; }
+
+        .toast-enter-active, .toast-leave-active { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .toast-enter-from, .toast-leave-to { transform: translateY(-20px) scale(0.95); opacity: 0; }
+
+        .item-complete-enter-active, .item-complete-leave-active { transition: all 0.4s ease; }
+        .item-complete-leave-to { opacity: 0; transform: scale(0.9); }
+
+        @keyframes blob {
+            0% { transform: translate(0px, 0px) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+            100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+
+        .spinner {
+            width: 24px; height: 24px;
+            border: 3px solid rgba(0,122,255, 0.2);
+            border-top-color: #007AFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
     </style>
 </head>
 <body>
-    <div id="app" class="min-h-screen flex flex-col text-slate-800 pb-24">
+    <div id="app" class="min-h-screen flex flex-col pb-24 relative overflow-hidden">
         
-        <div v-if="globalLoading" class="fixed inset-0 z-[100] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center">
-            <div class="loader ease-linear rounded-full border-4 border-t-4 border-slate-200 h-12 w-12 mb-4"></div>
-            <p class="text-indigo-600 font-bold animate-pulse tracking-widest text-xs uppercase">{{ loadingMessage }}</p>
-        </div>
-        
-        <div v-if="config.notice" class="bg-amber-100 text-amber-800 px-4 py-3 text-sm font-medium text-center z-40 border-b border-amber-200 flex justify-center items-center gap-2">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
-            {{ config.notice }}
+        <transition name="fade">
+            <div v-if="globalLoading" class="fixed inset-0 z-[100] bg-[#FBFBFD]/80 backdrop-blur-xl flex flex-col items-center justify-center">
+                <div class="spinner mb-4"></div>
+                <p class="text-[#86868B] text-xs font-semibold tracking-widest uppercase">{{ loadingMessage }}</p>
+            </div>
+        </transition>
+
+        <transition name="toast">
+            <div v-if="toast.show" class="fixed top-6 left-1/2 -translate-x-1/2 z-[110] px-6 py-3 rounded-full shadow-lg flex items-center gap-3 backdrop-blur-md"
+                 :class="toast.type === 'error' ? 'bg-red-500/90 text-white' : 'bg-[#1D1D1F]/90 text-white'">
+                <svg v-if="toast.type === 'success'" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span class="text-sm font-medium">{{ toast.message }}</span>
+            </div>
+        </transition>
+
+        <transition name="fade">
+            <div v-if="dialog.show" class="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl transform transition-all text-center">
+                    <h3 class="text-xl font-semibold text-[#1D1D1F] mb-2">{{ dialog.title }}</h3>
+                    <p class="text-sm text-[#86868B] mb-6 leading-relaxed whitespace-pre-wrap">{{ dialog.text }}</p>
+                    <div class="flex flex-col gap-2">
+                        <button @click="dialog.resolve(true)" class="w-full py-3.5 rounded-xl font-semibold text-white bg-[#007AFF] hover:bg-[#0066CC] active:scale-[0.98] transition">
+                            {{ dialog.confirmText || 'OK' }}
+                        </button>
+                        <button @click="dialog.resolve(false)" class="w-full py-3.5 rounded-xl font-semibold text-[#007AFF] bg-[#F5F5F7] hover:bg-[#E5E5EA] active:scale-[0.98] transition">
+                            キャンセル
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
+        <div v-if="config.notice" class="bg-blue-50 text-[#007AFF] px-4 py-2 text-xs font-medium text-center z-40 flex justify-center items-center gap-2">
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span class="truncate">{{ config.notice }}</span>
         </div>
 
-        <div v-if="!user" class="flex-1 flex flex-col items-center justify-center p-6 bg-slate-50">
-            <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
-                <div class="bg-slate-900 p-8 text-center">
-                    <h1 class="text-3xl font-black text-white tracking-tight">S.K.I.D</h1>
-                    <p class="text-indigo-400 text-xs font-mono mt-1 tracking-widest">ASSET COMMAND SYSTEM</p>
+        <div v-if="!user" class="flex-1 flex flex-col items-center justify-center p-6 relative bg-[#FBFBFD] overflow-hidden">
+            <div class="absolute top-[0%] left-[-10%] w-[60vw] h-[60vw] max-w-[500px] max-h-[500px] bg-blue-200/40 rounded-full mix-blend-multiply filter blur-[80px] animate-blob"></div>
+            <div class="absolute top-[20%] right-[-10%] w-[50vw] h-[50vw] max-w-[400px] max-h-[400px] bg-indigo-200/40 rounded-full mix-blend-multiply filter blur-[80px] animate-blob animation-delay-2000"></div>
+            <div class="absolute bottom-[-10%] left-[20%] w-[50vw] h-[50vw] max-w-[400px] max-h-[400px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[80px] animate-blob animation-delay-4000"></div>
+
+            <div class="z-10 w-full max-w-sm">
+                <div class="text-center mb-10">
+                    <h1 class="text-3xl font-extrabold text-[#1D1D1F] tracking-tight mb-2">机移動システム</h1>
+                    <p class="text-xs font-semibold text-[#86868B] tracking-widest uppercase">Asset Command</p>
                 </div>
-                <div class="p-8 space-y-6">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">1. Select Floor</label>
-                        <select v-model="loginForm.floor" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                            <option value="" disabled>フロアを選択</option>
-                            <option v-for="f in floorList" :key="f" :value="f">{{ f }}</option>
-                            <option value="All">SYSTEM ADMIN</option>
-                        </select>
+
+                <div class="bg-white/60 backdrop-blur-2xl rounded-[32px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-[#86868B] uppercase tracking-wider ml-2">1. Floor</label>
+                        <div class="relative">
+                            <select v-model="loginForm.floor" class="w-full bg-[#F5F5F7]/80 border border-transparent rounded-2xl px-5 py-4 text-sm font-semibold text-[#1D1D1F] outline-none focus:bg-white focus:ring-2 focus:ring-[#007AFF]/20 transition-all appearance-none cursor-pointer">
+                                <option value="" disabled>フロアを選択してください</option>
+                                <option v-for="f in floorList" :key="f" :value="f">{{ f }}</option>
+                                <option value="All">SYSTEM ADMIN</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[#86868B]">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                            </div>
+                        </div>
                     </div>
-                    <div v-if="loginForm.floor">
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">2. Identity</label>
-                        <select v-model="loginForm.id" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                            <option value="" disabled>アカウントを選択</option>
-                            <option v-for="r in roomsInSelectedFloor" :key="r.id" :value="r.id">{{ r.name }}</option>
-                        </select>
-                    </div>
-                    <div v-if="loginForm.id">
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">3. Password</label>
-                        <input type="password" v-model="loginForm.password" placeholder="••••" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                    </div>
-                    <button @click="doLogin" :disabled="!canLogin" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-black disabled:opacity-50 transition active:scale-[0.98]">CONNECT</button>
+
+                    <transition name="slide-up">
+                        <div v-if="loginForm.floor" class="space-y-2">
+                            <label class="text-[10px] font-bold text-[#86868B] uppercase tracking-wider ml-2">2. Room</label>
+                            <div class="relative">
+                                <select v-model="loginForm.id" class="w-full bg-[#F5F5F7]/80 border border-transparent rounded-2xl px-5 py-4 text-sm font-semibold text-[#1D1D1F] outline-none focus:bg-white focus:ring-2 focus:ring-[#007AFF]/20 transition-all appearance-none cursor-pointer">
+                                    <option value="" disabled>アカウントを選択してください</option>
+                                    <option v-for="r in roomsInSelectedFloor" :key="r.id" :value="r.id">{{ r.name }}</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[#86868B]">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </transition>
+
+                    <transition name="slide-up">
+                        <div v-if="loginForm.id" class="space-y-2">
+                            <label class="text-[10px] font-bold text-[#86868B] uppercase tracking-wider ml-2">3. Password</label>
+                            <input type="password" v-model="loginForm.password" placeholder="パスワードを入力" class="w-full bg-[#F5F5F7]/80 border border-transparent rounded-2xl px-5 py-4 text-sm font-semibold text-[#1D1D1F] outline-none focus:bg-white focus:ring-2 focus:ring-[#007AFF]/20 transition-all">
+                        </div>
+                    </transition>
+
+                    <transition name="slide-up">
+                        <button v-if="loginForm.id" @click="doLogin" :disabled="!canLogin" class="w-full bg-[#1D1D1F] text-white font-semibold py-4 rounded-2xl hover:bg-black disabled:opacity-50 disabled:hover:bg-[#1D1D1F] transition-all active:scale-[0.98] mt-2 shadow-lg shadow-black/5">
+                            接続する
+                        </button>
+                    </transition>
                 </div>
             </div>
         </div>
 
         <div v-else class="flex-1 flex flex-col">
-            <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm/30 backdrop-blur-sm bg-white/90">
-                <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <header class="glass sticky top-0 z-30">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
                     <div class="flex items-center gap-3">
-                        <div class="p-2 rounded-lg text-white" :class="isAdmin ? 'bg-rose-600' : 'bg-slate-800'">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm" :class="isAdmin ? 'bg-gradient-to-br from-red-500 to-orange-500' : 'bg-gradient-to-br from-gray-800 to-gray-900'">
                             <svg v-if="isAdmin" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
                             <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         </div>
-                        <div>
-                            <h2 class="font-bold text-slate-800 leading-tight text-sm">{{ user.name }}</h2>
-                            <p class="text-[10px] text-slate-400 font-bold tracking-widest uppercase mt-0.5">
-                                <span v-if="!isAdmin">{{ user.floor }} / {{ currentTerm }}</span>
-                                <span v-else class="text-rose-600">{{ user.role }} MODE</span>
-                            </p>
+                        <div class="flex flex-col">
+                            <span class="font-semibold text-[#1D1D1F] text-sm leading-tight">{{ user.name }}</span>
+                            <span class="text-[10px] text-[#86868B] font-medium tracking-wide">
+                                <span v-if="!isAdmin">{{ user.floor }} • {{ currentTerm }}</span>
+                                <span v-else class="text-red-500">{{ user.role }}</span>
+                            </span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button @click="fetchData(true)" class="p-2 bg-slate-50 border border-slate-200 rounded-full text-slate-500 hover:text-indigo-600 transition"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
-                        <button @click="logout" class="p-2 bg-slate-50 border border-slate-200 rounded-full text-slate-500 hover:text-rose-600 transition"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></button>
+                    <div class="flex items-center gap-1 sm:gap-2">
+                        <button @click="fetchData(true)" class="p-2.5 rounded-full text-[#86868B] hover:bg-[#E5E5EA] hover:text-[#1D1D1F] transition active:scale-95 disabled:opacity-50" :disabled="globalLoading">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                        </button>
+                        <button @click="logout" class="p-2.5 rounded-full text-[#86868B] hover:bg-red-50 hover:text-red-500 transition active:scale-95">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        </button>
                     </div>
                 </div>
             </header>
 
-            <main class="flex-1 max-w-6xl mx-auto w-full p-4 space-y-8">
-                
-                <div v-if="isAdmin">
-                    <div v-if="user.role === 'SuperAdmin'" class="bg-indigo-50 rounded-xl border border-indigo-200 p-5 mb-8 shadow-sm">
-                        <h3 class="text-xs font-bold text-indigo-700 uppercase tracking-widest flex items-center gap-2 mb-4">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                            Mission Generator
+            <main class="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 space-y-8">
+                <div v-if="isAdmin" class="space-y-8">
+                    <div v-if="user.role === 'SuperAdmin'" class="bento-card p-6 border border-blue-100/50 relative overflow-hidden">
+                        <div class="absolute -right-10 -top-10 w-40 h-40 bg-blue-50 rounded-full blur-3xl -z-10"></div>
+                        <h3 class="text-sm font-semibold text-[#1D1D1F] flex items-center gap-2 mb-4">
+                            <svg class="w-5 h-5 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                            自動ミッション生成
                         </h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <button @click="generateMissions('setup')" class="bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-indigo-700 active:scale-95 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>準備ミッション生成 (開始時➜終了時)</button>
-                            <button @click="generateMissions('teardown')" class="bg-rose-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-rose-700 active:scale-95 transition flex items-center justify-center gap-2"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>復元ミッション生成 (終了時➜開始時)</button>
+                            <button @click="generateMissions('setup')" class="bg-white text-[#1D1D1F] font-medium py-4 px-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition active:scale-[0.98] flex items-center justify-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-[#007AFF]"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
+                                準備 (開始時 ➜ 終了時)
+                            </button>
+                            <button @click="generateMissions('teardown')" class="bg-white text-[#1D1D1F] font-medium py-4 px-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition active:scale-[0.98] flex items-center justify-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg></div>
+                                復元 (終了時 ➜ 開始時)
+                            </button>
                         </div>
-                        <p class="text-[10px] text-indigo-500 mt-3 font-bold">※実行すると現在のMovementsシートは全消去され、新しい指示書で上書きされます。</p>
+                        <p class="text-[11px] text-[#86868B] mt-4 font-medium text-center">※実行すると現在の指示書はリセットされ、新しく上書きされます。</p>
                     </div>
 
-                    <div class="space-y-3 mb-8">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Phase Control</h3>
+                    <div>
+                        <h3 class="text-sm font-semibold text-[#1D1D1F] mb-4 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-[#86868B]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            フェーズコントロール
+                        </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            <div v-for="floor in adminVisibleFloors" :key="floor" class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm relative overflow-hidden">
-                                <div class="flex items-center justify-between mb-3"><span class="bg-slate-800 text-white text-xs font-bold px-2 py-1 rounded">{{ floor }}</span><span class="text-xs font-bold text-slate-400">Current: {{ config.floors[floor] }}</span></div>
-                                <div class="flex gap-1.5 flex-wrap">
-                                    <button v-for="t in ['Term1', 'Term2', 'Term3']" :key="t" @click="changeTerm(floor, t)" :disabled="config.floors[floor] === t" class="flex-1 py-1.5 rounded text-[10px] font-bold border transition" :class="config.floors[floor] === t ? 'bg-indigo-50 border-indigo-200 text-indigo-700 cursor-default' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'">{{ t }}</button>
+                            <div v-for="floor in adminVisibleFloors" :key="floor" class="bento-card p-5 border border-gray-100">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-sm font-bold text-[#1D1D1F]">{{ floor }}</span>
+                                    <span class="text-xs font-medium px-2.5 py-1 bg-[#F5F5F7] text-[#86868B] rounded-full">{{ config.floors[floor] }}</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button v-for="t in ['Term1', 'Term2', 'Term3']" :key="t" @click="changeTerm(floor, t)" :disabled="config.floors[floor] === t" 
+                                            class="flex-1 py-2 rounded-xl text-xs font-medium transition"
+                                            :class="config.floors[floor] === t ? 'bg-[#1D1D1F] text-white' : 'bg-[#F5F5F7] text-[#86868B] hover:bg-[#E5E5EA] active:scale-95'">
+                                        {{ t }}
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="space-y-4">
-                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>Inventory Overview</h3>
-                            <div class="flex gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
-                                <input v-model="searchQuery" type="text" placeholder="Search..." class="bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none w-32 shrink-0">
-                                <button @click="filterStatus = 'all'" class="px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0 transition" :class="filterStatus === 'all' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'">All</button>
-                                <button @click="filterStatus = 'deficit'" class="px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0 transition" :class="filterStatus === 'deficit' ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-rose-600 border-rose-200 hover:bg-rose-50'">不足のみ</button>
-                                <button @click="filterStatus = 'surplus'" class="px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0 transition" :class="filterStatus === 'surplus' ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-amber-600 border-amber-200 hover:bg-amber-50'">過剰のみ</button>
+                    <div>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                            <h3 class="text-sm font-semibold text-[#1D1D1F] flex items-center gap-2">
+                                <svg class="w-5 h-5 text-[#86868B]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                                全体在庫状況
+                            </h3>
+                            <div class="flex gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar p-1">
+                                <input v-model="searchQuery" type="text" placeholder="検索..." class="bg-white border border-gray-100 shadow-sm rounded-full px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-[#007AFF] outline-none w-36 shrink-0 text-[#1D1D1F]">
+                                <div class="flex bg-white rounded-full p-1 shadow-sm shrink-0 border border-gray-100">
+                                    <button @click="filterStatus = 'all'" class="px-4 py-1.5 rounded-full text-xs font-medium transition" :class="filterStatus === 'all' ? 'bg-[#1D1D1F] text-white' : 'text-[#86868B] hover:bg-[#F5F5F7]'">全て</button>
+                                    <button @click="filterStatus = 'deficit'" class="px-4 py-1.5 rounded-full text-xs font-medium transition" :class="filterStatus === 'deficit' ? 'bg-red-500 text-white' : 'text-red-500 hover:bg-red-50'">不足</button>
+                                    <button @click="filterStatus = 'surplus'" class="px-4 py-1.5 rounded-full text-xs font-medium transition" :class="filterStatus === 'surplus' ? 'bg-orange-500 text-white' : 'text-orange-500 hover:bg-orange-50'">過剰</button>
+                                </div>
                             </div>
                         </div>
 
-                        <div v-for="(rooms, floor) in groupedAdminRooms" :key="floor" class="mb-6">
-                            <div class="flex items-center gap-3 mb-3 sticky top-[60px] z-20 bg-[#f1f5f9]/90 backdrop-blur py-2 border-b border-slate-200/50">
-                                <span class="bg-slate-700 text-white text-xs font-black px-3 py-1 rounded-md shadow-sm">{{ floor }}</span>
-                                <select v-model="viewTargetModes[floor]" class="bg-indigo-50 border border-indigo-200 rounded text-[10px] font-bold text-indigo-700 px-2 py-1 outline-none cursor-pointer shadow-sm">
+                        <div v-for="(rooms, floor) in groupedAdminRooms" :key="floor" class="mb-8">
+                            <div class="flex flex-wrap items-center gap-3 mb-4 sticky top-[64px] z-20 py-2 glass -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent sm:backdrop-blur-none sm:border-none">
+                                <span class="bg-[#1D1D1F] text-white text-xs font-semibold px-3 py-1.5 rounded-full">{{ floor }}</span>
+                                <select v-model="viewTargetModes[floor]" class="bg-white border border-gray-100 rounded-full text-xs font-medium text-[#1D1D1F] px-3 py-1.5 outline-none cursor-pointer shadow-sm appearance-none">
                                     <option value="term">判定: 現フェーズ ({{ config.floors[floor] || 'Term1' }})</option>
                                     <option value="final">判定: 最終目標</option>
                                 </select>
-                                <div class="flex gap-2 overflow-x-auto no-scrollbar"><div v-for="(sum, name) in getFloorSummary(rooms)" :key="name" v-show="sum.diff !== 0" class="text-[10px] font-bold px-2 py-0.5 rounded border bg-white whitespace-nowrap flex items-center gap-1 shadow-sm"><span class="text-slate-500">{{ name }}</span><span :class="sum.diff < 0 ? 'text-rose-600' : 'text-emerald-600'">{{ sum.diff > 0 ? '+' : ''}}{{ sum.diff }}</span></div></div>
+                                <div class="flex gap-2 overflow-x-auto no-scrollbar">
+                                    <div v-for="(sum, name) in getFloorSummary(rooms)" :key="name" v-show="sum.diff !== 0" class="text-xs font-medium px-3 py-1.5 rounded-full bg-white border border-gray-100 shadow-sm whitespace-nowrap flex items-center gap-1.5">
+                                        <span class="text-[#86868B]">{{ name }}</span>
+                                        <span :class="sum.diff < 0 ? 'text-red-500' : 'text-orange-500'">{{ sum.diff > 0 ? '+' : ''}}{{ sum.diff }}</span>
+                                    </div>
+                                </div>
                             </div>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                <div v-for="room in rooms" :key="room.id" class="bg-white rounded-xl border p-4 shadow-sm hover:shadow-md transition relative group" :class="getRoomStatusColor(room)">
-                                    <div class="flex justify-between items-center mb-3">
-                                        <h4 class="font-bold text-slate-800 text-sm">{{ room.name }}</h4>
-                                        <button @click="openDirectEdit(room)" class="opacity-0 group-hover:opacity-100 transition text-[10px] bg-slate-800 text-white px-2 py-1 rounded font-bold hover:bg-black">EDIT</button>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                <div v-for="room in rooms" :key="room.id" class="bento-card p-5 relative group overflow-hidden bg-white" :class="getRoomStatusBg(room)">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h4 class="font-bold text-[#1D1D1F] text-base">{{ room.name }}</h4>
+                                        <button @click="openDirectEdit(room)" class="w-8 h-8 rounded-full bg-black/5 text-[#1D1D1F] flex items-center justify-center opacity-0 group-hover:opacity-100 transition hover:bg-black/10 active:scale-95">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                        </button>
                                     </div>
-                                    <div class="space-y-1">
-                                        <div v-for="(info, key) in room.items" :key="key" class="flex justify-between text-xs border-b border-slate-50 last:border-0 py-1.5">
-                                            <span class="font-medium text-slate-500">{{ key }}</span>
-                                            <div class="font-mono">
-                                                <span :class="info.diff === 0 ? 'text-slate-800' : (info.diff < 0 ? 'text-rose-600 font-bold' : 'text-amber-600 font-bold')">{{ info.current }}</span>
-                                                <span class="text-slate-200 mx-1">/</span><span class="text-slate-300">{{ info.target }}</span>
-                                                <span v-if="info.diff !== 0" class="ml-1 text-[10px] px-1 rounded" :class="info.diff < 0 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'">{{ info.diff > 0 ? '+' : '' }}{{ info.diff }}</span>
+                                    <div class="space-y-2">
+                                        <div v-for="(info, key) in room.items" :key="key" class="flex justify-between items-center text-sm bg-[#FBFBFD] rounded-lg px-3 py-2 border border-gray-100/50">
+                                            <span class="font-medium text-[#86868B]">{{ key }}</span>
+                                            <div class="flex items-center gap-2">
+                                                <div class="font-semibold text-right w-12" :class="info.diff === 0 ? 'text-[#1D1D1F]' : (info.diff < 0 ? 'text-red-500' : 'text-orange-500')">
+                                                    {{ info.current }}
+                                                </div>
+                                                <span class="text-[#D2D2D7]">/</span>
+                                                <span class="text-[#86868B] text-xs w-8">{{ info.target }}</span>
+                                                <span v-if="info.diff !== 0" class="text-[10px] px-1.5 py-0.5 rounded-full font-bold w-8 text-center" :class="info.diff < 0 ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'">
+                                                    {{ info.diff > 0 ? '+' : '' }}{{ info.diff }}
+                                                </span>
+                                                <span v-else class="w-8"></span>
                                             </div>
                                         </div>
                                     </div>
@@ -157,56 +305,85 @@
 
                 <div v-else class="space-y-8">
                     <div>
-                        <h3 class="flex items-center gap-2 font-bold text-slate-800 text-sm uppercase tracking-widest mb-4"><svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>My Assignments <span v-if="myMissions.length > 0" class="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full ml-2">{{ myMissions.length }}</span></h3>
-                        
-                        <div v-if="myMissions.length === 0" class="bg-slate-50 border border-slate-200 rounded-xl p-8 text-center flex flex-col items-center">
-                            <div class="bg-white p-3 rounded-full shadow-sm mb-3"><svg class="w-6 h-6 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg></div>
-                            <p class="font-bold text-slate-600">All Clear</p>
-                            <p class="text-xs text-slate-400 mt-1">割り当てられたタスクはありません</p>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-semibold text-[#1D1D1F] flex items-center gap-2">
+                                <svg class="w-5 h-5 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                                割り当てられたタスク
+                            </h3>
+                            <span v-if="myMissions.length > 0" class="bg-[#007AFF] text-white text-xs font-bold px-3 py-1 rounded-full">{{ myMissions.length }}</span>
                         </div>
                         
-                        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div v-for="m in myMissions" :key="m.rowIndex" class="bg-white rounded-xl shadow-sm border border-slate-100 p-5 relative overflow-hidden transition hover:shadow-md">
-                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
-                                <div class="flex justify-between items-start mb-4 pl-3">
-                                    <div class="flex items-center gap-3">
-                                        <div class="p-2 rounded-lg bg-indigo-50 text-indigo-600"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg></div>
-                                        <div><div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">TASK</div><div class="font-bold text-lg text-slate-800 leading-none">{{ getRoomName(m.from) }} <span class="text-slate-300 text-sm">➜</span> {{ getRoomName(m.to) }}</div></div>
+                        <div v-if="myMissions.length === 0" class="bento-card border border-gray-100 p-12 text-center flex flex-col items-center justify-center">
+                            <div class="w-16 h-16 bg-[#F5F5F7] rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                            </div>
+                            <p class="font-semibold text-[#1D1D1F] text-lg">タスクはありません</p>
+                            <p class="text-sm text-[#86868B] mt-1">現在のフェーズでの移動指示は完了しています。</p>
+                        </div>
+                        
+                        <transition-group name="item-complete" tag="div" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" v-else>
+                            <div v-for="m in myMissions" :key="m.rowIndex" class="bento-card border border-gray-100 p-6 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex justify-between items-start mb-4">
+                                        <span class="bg-blue-50 text-[#007AFF] text-xs font-bold px-3 py-1.5 rounded-lg">{{ m.item }}</span>
+                                        <div class="flex items-baseline text-[#1D1D1F]">
+                                            <span class="font-bold text-3xl tracking-tight">{{ m.amount }}</span>
+                                            <span class="text-xs font-medium ml-1 text-[#86868B]">個</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-3 mb-6 bg-[#FBFBFD] border border-gray-100 p-3 rounded-2xl">
+                                        <div class="flex-1 text-center">
+                                            <div class="text-[10px] text-[#86868B] font-medium mb-1 uppercase">From</div>
+                                            <div class="font-semibold text-[#1D1D1F] text-sm truncate">{{ getRoomName(m.from) }}</div>
+                                        </div>
+                                        <div class="text-[#D2D2D7]"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></div>
+                                        <div class="flex-1 text-center">
+                                            <div class="text-[10px] text-[#86868B] font-medium mb-1 uppercase">To</div>
+                                            <div class="font-semibold text-[#1D1D1F] text-sm truncate">{{ getRoomName(m.to) }}</div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="pl-3 mb-5">
-                                    <div class="flex items-baseline justify-between border-b border-slate-50 pb-2"><span class="font-bold text-slate-600 text-sm">{{ m.item }}</span><div class="flex items-baseline"><span class="font-black text-2xl text-slate-800">{{ m.amount }}</span><span class="text-xs text-slate-400 ml-1 font-bold">pcs</span></div></div>
-                                </div>
-                                <button @click="completeMission(m)" :disabled="processingMissions.has(m.rowIndex)" class="w-full py-3 rounded-lg font-bold text-white text-sm shadow-md active:scale-95 transition flex items-center justify-center gap-2 ml-1" :class="processingMissions.has(m.rowIndex) ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'">
-                                    <span v-if="processingMissions.has(m.rowIndex)" class="loader w-4 h-4 border-2 border-t-2 border-white/50 border-t-white rounded-full animate-spin"></span>
-                                    <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                    <span>{{ processingMissions.has(m.rowIndex) ? 'SENDING...' : '完了報告 (Complete)' }}</span>
+                                <button @click="completeMission(m)" :disabled="processingMissions.has(m.rowIndex)" 
+                                        class="w-full py-3.5 rounded-xl font-semibold text-white transition flex items-center justify-center gap-2 active:scale-[0.98]" 
+                                        :class="processingMissions.has(m.rowIndex) ? 'bg-[#86868B] cursor-wait' : 'bg-[#1D1D1F] hover:bg-black'">
+                                    <span v-if="processingMissions.has(m.rowIndex)" class="spinner w-5 h-5 border-2 border-white/30 border-t-white"></span>
+                                    <svg v-else class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                    <span>{{ processingMissions.has(m.rowIndex) ? '送信中...' : '完了報告' }}</span>
                                 </button>
                             </div>
-                        </div>
+                        </transition-group>
                     </div>
 
                     <div>
-                        <div class="flex justify-between items-end mb-4 border-b border-slate-100 pb-2">
-                            <h3 class="flex items-center gap-2 font-bold text-slate-800 text-sm uppercase tracking-widest">
-                                <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                                Current Inventory
-                                <select v-model="viewTargetModes[user.floor]" class="ml-3 bg-indigo-50 border border-indigo-200 rounded text-[10px] font-bold text-indigo-700 px-2 py-1 outline-none cursor-pointer shadow-sm">
-                                    <option value="term">判定: 現フェーズ ({{ currentTerm }})</option>
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center gap-3">
+                                <h3 class="text-sm font-semibold text-[#1D1D1F] flex items-center gap-2">
+                                    <svg class="w-5 h-5 text-[#86868B]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                                    現在の在庫
+                                </h3>
+                                <select v-model="viewTargetModes[user.floor]" class="bg-white border border-gray-100 shadow-sm rounded-full text-xs font-medium text-[#1D1D1F] px-3 py-1.5 outline-none cursor-pointer appearance-none">
+                                    <option value="term">判定: {{ currentTerm }}</option>
                                     <option value="final">判定: 最終目標</option>
                                 </select>
-                            </h3>
-                            <button @click="openDirectEdit(myRoom)" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-full transition border border-indigo-100"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>手動修正</button>
+                            </div>
+                            <button @click="openDirectEdit(myRoom)" class="text-xs font-semibold text-[#007AFF] bg-blue-50 px-4 py-2 rounded-full transition active:scale-95 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                手動修正
+                            </button>
                         </div>
-                        <div v-if="!myRoom" class="bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded-xl text-center font-bold text-sm">Error: Room Data Not Found</div>
-                        <div v-else class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                <div v-for="(info, key) in myRoom.items" :key="key" class="p-3 rounded-xl border flex flex-col items-center justify-center text-center transition" :class="getItemStatusClass(info.diff)">
-                                    <div class="text-xs font-bold opacity-60 mb-1">{{ key }}</div>
-                                    <div class="font-black text-3xl mb-1 tracking-tight">{{ info.current }}</div>
-                                    <div class="text-[10px] text-slate-400 font-medium mb-2">Goal: {{ info.target }}</div>
-                                    <div v-if="info.diff !== 0" class="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1" :class="info.diff > 0 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'"><span>{{ info.diff > 0 ? '+' : ''}}{{ info.diff }}</span></div>
-                                    <div v-else class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">MATCH</div>
+                        
+                        <div v-if="!myRoom" class="bento-card border border-gray-100 p-6 text-center text-red-500 font-medium text-sm">ルームデータが見つかりません</div>
+                        
+                        <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                            <div v-for="(info, key) in myRoom.items" :key="key" class="bento-card p-5 flex flex-col items-center text-center" :class="getItemStatusBg(info.diff)">
+                                <div class="text-sm font-medium text-[#86868B] mb-2">{{ key }}</div>
+                                <div class="font-bold text-4xl text-[#1D1D1F] tracking-tight mb-2">{{ info.current }}</div>
+                                <div class="w-full flex justify-between items-center px-2 py-1.5 bg-[#FBFBFD] border border-gray-100/50 rounded-lg mt-auto">
+                                    <span class="text-[10px] text-[#86868B] font-medium">目標: {{ info.target }}</span>
+                                    <span v-if="info.diff !== 0" class="text-xs font-bold" :class="info.diff > 0 ? 'text-orange-500' : 'text-red-500'">
+                                        {{ info.diff > 0 ? '+' : ''}}{{ info.diff }}
+                                    </span>
+                                    <svg v-else class="w-4 h-4 text-[#007AFF]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                                 </div>
                             </div>
                         </div>
@@ -215,123 +392,113 @@
             </main>
         </div>
 
-        <transition name="fade">
-            <div v-if="showEditModal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4">
-                <transition name="slide-up">
-                    <div v-if="showEditModal" class="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-6 shadow-2xl overflow-hidden max-h-[80vh] flex flex-col">
-                        <div class="flex justify-between items-center mb-6 shrink-0">
-                            <div><h3 class="text-lg font-bold text-slate-800">Inventory Adjustment</h3><p class="text-xs text-slate-400 font-mono">{{ editTargetRoom?.name }}</p></div>
-                            <button @click="showEditModal = false" class="text-slate-400 bg-slate-100 p-2 rounded-full hover:bg-slate-200 transition">✕</button>
+        <transition name="slide-up">
+            <div v-if="showEditModal" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4 bg-black/20 backdrop-blur-sm transition-all" @click.self="showEditModal = false">
+                <div class="bg-white w-full sm:max-w-sm rounded-t-[32px] sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
+                    <div class="p-6 flex justify-between items-center border-b border-gray-100 shrink-0">
+                        <div>
+                            <h3 class="text-lg font-bold text-[#1D1D1F]">在庫調整</h3>
+                            <p class="text-xs text-[#86868B] font-medium">{{ editTargetRoom?.name }}</p>
                         </div>
-                        <div class="flex-1 overflow-y-auto space-y-3 p-1">
-                            <div v-for="(val, key) in editForm" :key="key" class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                <span class="font-bold text-slate-700 text-sm">{{ key }}</span>
-                                <div class="flex items-center gap-2">
-                                    <button @click="editForm[key] = Math.max(0, editForm[key]-1)" class="w-8 h-8 flex items-center justify-center bg-white border rounded-lg shadow-sm text-slate-500 font-bold active:scale-90 transition hover:border-indigo-200">-</button>
-                                    <input type="number" v-model="editForm[key]" class="w-12 text-center bg-transparent font-bold text-lg outline-none text-slate-800">
-                                    <button @click="editForm[key]++" class="w-8 h-8 flex items-center justify-center bg-white border rounded-lg shadow-sm text-indigo-600 font-bold active:scale-90 transition hover:border-indigo-200">+</button>
-                                </div>
+                        <button @click="showEditModal = false" class="w-8 h-8 rounded-full bg-[#F5F5F7] text-[#86868B] flex items-center justify-center hover:bg-[#E5E5EA] transition active:scale-95">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
+                        <div v-for="(val, key) in editForm" :key="key" class="flex items-center justify-between">
+                            <span class="font-semibold text-[#1D1D1F]">{{ key }}</span>
+                            <div class="flex items-center bg-[#F5F5F7] rounded-xl p-1 border border-gray-100">
+                                <button @click="editForm[key] = Math.max(0, editForm[key]-1)" class="w-10 h-10 rounded-lg flex items-center justify-center text-[#1D1D1F] hover:bg-white hover:shadow-sm transition active:scale-95">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg>
+                                </button>
+                                <input type="number" v-model="editForm[key]" class="w-12 text-center bg-transparent font-bold text-lg text-[#1D1D1F] outline-none appearance-none" style="-moz-appearance: textfield;">
+                                <button @click="editForm[key]++" class="w-10 h-10 rounded-lg flex items-center justify-center text-[#1D1D1F] hover:bg-white hover:shadow-sm transition active:scale-95">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                </button>
                             </div>
                         </div>
-                        <div class="mt-6 shrink-0"><button @click="submitEdit" class="w-full bg-slate-900 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition hover:bg-black">Confirm Changes</button></div>
                     </div>
-                </transition>
+                    <div class="p-6 pt-2 shrink-0 pb-10 sm:pb-6">
+                        <button @click="submitEdit" class="w-full bg-[#1D1D1F] text-white font-semibold py-4 rounded-2xl shadow-lg hover:bg-black active:scale-[0.98] transition">
+                            変更を保存
+                        </button>
+                    </div>
+                </div>
             </div>
         </transition>
     </div>
 
     <script>
         const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
+        
         createApp({
             setup() {
-                // デプロイしたGASのWebアプリURLを指定
-                const API_URL = 'https://script.google.com/macros/s/AKfycbxAcO_zZOUtnd4F7aMwZnucLlHxR2KZB2QYkUWxk32B3avqxSuFslmtt7VjvMghkA-9/exec';
+                const API_URL = 'https://script.google.com/macros/s/AKfycbxdMcWEiXSkZ2HYiCkLAu5pxOz8FoX9xZUuqCIquuiWJrdKwvFUg_JYTr7aCGcUPAkB/exec';
                 
-                // UI状態管理
                 const globalLoading = ref(true);
-                const loadingMessage = ref('CONNECTING...');
-                // 二重送信防止用のミッション状態トラッカー
+                const loadingMessage = ref('接続中...');
                 const processingMissions = reactive(new Set());
 
-                // データ状態管理
                 const rooms = ref([]);
                 const movements = ref([]);
                 const config = ref({ notice: '', targetMode: '終了時', floors: {} });
                 const items = ref([]);
                 const user = ref(null);
-                
-                // フォームおよびフィルター状態管理
                 const loginForm = ref({ floor: '', id: '', password: '' });
                 const showEditModal = ref(false);
                 const editTargetRoom = ref(null);
                 const editForm = ref({});
                 const searchQuery = ref('');
                 const filterStatus = ref('all');
-                
-                // 各フロアごとのターゲット判定モード保持 ('term' | 'final')
                 const viewTargetModes = reactive({});
                 
-                // 自律分散型ポーリング機構用の変数
                 let fetchTimerId = null;
-                let errorCount = 0;
+                let isFetching = false; // 重複fetch防止フラグ
+                let documentVisible = true; // タブ状態のトラッキング
 
-                // --- 算出プロパティ (Computed) ---
-                
-                // ログイン画面用: フロアの一覧を動的生成
-                const floorList = computed(() => { 
-                    const floors = new Set(rooms.value.map(r => r.floor).filter(f => f)); 
-                    return Array.from(floors).sort(); 
-                });
-                
-                // ログイン画面用: 選択したフロアに属するアカウント一覧の動的生成
-                const roomsInSelectedFloor = computed(() => { 
-                    if (loginForm.value.floor === 'All') return [{ id: 'Admin', name: 'SYSTEM ADMIN' }]; 
-                    return rooms.value.filter(r => r.floor === loginForm.value.floor); 
-                });
-                
+                // カスタムUI
+                const toast = reactive({ show: false, message: '', type: 'success' });
+                const showToast = (msg, type = 'success', duration = 3000) => {
+                    toast.message = msg; toast.type = type; toast.show = true;
+                    setTimeout(() => { toast.show = false; }, duration);
+                };
+
+                const dialog = reactive({ show: false, title: '', text: '', confirmText: '', resolve: null });
+                const showConfirm = (title, text, confirmText = 'OK') => {
+                    return new Promise((resolve) => {
+                        dialog.title = title; dialog.text = text; dialog.confirmText = confirmText;
+                        dialog.resolve = (result) => { dialog.show = false; resolve(result); };
+                        dialog.show = true;
+                    });
+                };
+
+                const floorList = computed(() => { const floors = new Set(rooms.value.map(r => r.floor).filter(f => f)); return Array.from(floors).sort(); });
+                const roomsInSelectedFloor = computed(() => { if (loginForm.value.floor === 'All') return [{ id: 'Admin', name: 'SYSTEM ADMIN' }]; return rooms.value.filter(r => r.floor === loginForm.value.floor); });
                 const canLogin = computed(() => loginForm.value.floor && loginForm.value.id && loginForm.value.password);
                 const isAdmin = computed(() => user.value && (user.value.role === 'FloorAdmin' || user.value.role === 'SuperAdmin'));
-                const currentTerm = computed(() => { 
-                    if (!user.value) return ''; 
-                    if (user.value.floor === 'All') return 'ADMIN VIEW'; 
-                    return (config.value && config.value.floors && config.value.floors[user.value.floor]) || 'Unknown'; 
-                });
+                const currentTerm = computed(() => { if (!user.value) return ''; if (user.value.floor === 'All') return 'ADMIN VIEW'; return (config.value && config.value.floors && config.value.floors[user.value.floor]) || 'Unknown'; });
 
-                /**
-                 * データ加工用プロパティ: 表示用教室データ (displayRooms)
-                 * サーバーから受信した生データ(rooms)を基に、
-                 * 画面上で選択されたターゲットモード（フェーズ目標 or 最終目標）に合わせて
-                 * 差分(diff)を動的に再計算して描画用データを構築する。
-                 */
                 const displayRooms = computed(() => {
                     return rooms.value.map(r => {
                         const floorMode = viewTargetModes[r.floor] || 'term';
                         const newItems = {};
                         for (const key of Object.keys(r.items)) {
                             let targetVal = r.targets.final[key]; 
-                            
-                            // 現フェーズ(term)指定 ＆ そのタームの目標値が存在する場合は上書き
                             if (floorMode === 'term' && r.targets && r.targets[r.currentTerm] !== undefined) {
                                 targetVal = r.targets[r.currentTerm][key] ?? targetVal;
                             }
-
                             newItems[key] = {
                                 current: r.items[key].current,
                                 target: targetVal,
-                                diff: r.items[key].current - targetVal // 動的再計算
+                                diff: r.items[key].current - targetVal
                             };
                         }
                         return { ...r, items: newItems };
                     });
                 });
 
-                // 一般教室用: 自身の教室データ
-                const myRoom = computed(() => { 
-                    if (!user.value) return null; 
-                    return displayRooms.value.find(r => String(r.id) === String(user.value.id)); 
-                });
+                const myRoom = computed(() => { if (!user.value) return null; return displayRooms.value.find(r => String(r.id) === String(user.value.id)); });
 
-                // 一般教室用: 自身に割り当てられた未完了のミッション一覧
                 const myMissions = computed(() => {
                     if (!user.value) return [];
                     const myCurrentTerm = config.value.floors ? (config.value.floors[user.value.floor] || 'Term1') : 'Term1';
@@ -343,24 +510,15 @@
                     });
                 });
 
-                // 管理者用: 閲覧権限のあるフロア一覧
-                const adminVisibleFloors = computed(() => { 
-                    if (!user.value) return []; 
-                    if (user.value.role === 'SuperAdmin') return floorList.value; 
-                    if (user.value.role === 'FloorAdmin') return [user.value.floor]; 
-                    return []; 
-                });
+                const adminVisibleFloors = computed(() => { if (!user.value) return []; if (user.value.role === 'SuperAdmin') return floorList.value; if (user.value.role === 'FloorAdmin') return [user.value.floor]; return []; });
                 
-                // 管理者用: フロアごとにグループ化およびフィルタリングされた教室一覧
                 const groupedAdminRooms = computed(() => {
                     if (!user.value) return {};
                     let targetRooms = [];
-                    // ★ 生データではなく、再計算済みの表示用データを使用する
                     if (user.value.role === 'SuperAdmin') targetRooms = displayRooms.value; 
                     else if (user.value.role === 'FloorAdmin') targetRooms = displayRooms.value.filter(r => r.floor === user.value.floor);
                     
-                    targetRooms = targetRooms.filter(r => !String(r.id).startsWith('a_')); // 管理者アカウントを除外
-                    
+                    targetRooms = targetRooms.filter(r => !String(r.id).startsWith('a_'));
                     const q = searchQuery.value.toLowerCase();
                     targetRooms = targetRooms.filter(r => {
                         const matchesSearch = r.name.toLowerCase().includes(q) || String(r.id).toLowerCase().includes(q);
@@ -369,24 +527,15 @@
                         else if (filterStatus.value === 'surplus') matchesStatus = Object.values(r.items).some(i => i.diff > 0);
                         return matchesSearch && matchesStatus;
                     });
-                    
-                    const groups = {}; 
-                    targetRooms.forEach(r => { 
-                        if (!groups[r.floor]) groups[r.floor] = []; 
-                        groups[r.floor].push(r); 
-                    });
+                    const groups = {}; targetRooms.forEach(r => { if (!groups[r.floor]) groups[r.floor] = []; groups[r.floor].push(r); });
                     return Object.keys(groups).sort().reduce((obj, key) => { obj[key] = groups[key]; return obj; }, {});
                 });
 
-                // --- メソッド (Methods) ---
-
-                /**
-                 * サーバーと通信し、最新状態を取得する。
-                 * @param {boolean} force - 強制的にロードUIを表示するか
-                 * @param {boolean} background - バックグラウンド更新フラグ
-                 */
+                // --- 通信の最適化: フェッチ ---
                 const fetchData = async (force = false, background = false) => {
-                    if (!background) { globalLoading.value = true; loadingMessage.value = 'SYNCING...'; }
+                    if (isFetching || (!documentVisible && background)) return false; // 重複・バックグラウンド待機時はブロック
+                    isFetching = true;
+                    if (!background) { globalLoading.value = true; loadingMessage.value = '同期中...'; }
                     try {
                         const res = await fetch(API_URL + '?no_cache=' + Date.now());
                         const data = await res.json();
@@ -397,42 +546,40 @@
                             items.value = data.items || [];
                             return true; 
                         }
-                    } catch (e) { 
-                        console.error(e); 
-                        return false; 
-                    } finally { 
-                        globalLoading.value = false; 
-                    }
+                    } catch (e) { console.error(e); return false; } 
+                    finally { globalLoading.value = false; isFetching = false; }
                 };
 
-                /**
-                 * 自律分散型ポーリングの開始。
-                 * 指数バックオフおよびジッターを付与し、サーバーアクセスを平準化する。
-                 */
+                // --- 通信の最適化: ポーリング管理 ---
                 const startAutoSync = () => {
                     if (fetchTimerId) clearTimeout(fetchTimerId);
+                    if (!user.value) return;
                     const nextSync = () => {
-                        const baseDelay = 15000;
-                        const jitter = Math.random() * 5000; 
-                        const backoff = Math.min(errorCount * 5000, 30000); 
+                        const baseDelay = 35000; // API制限対策：ベース間隔を長め（35秒）に設定
+                        const jitter = Math.random() * 10000; // 負荷分散：＋0〜10秒のランダム遅延
                         fetchTimerId = setTimeout(async () => {
-                            const success = await fetchData(false, true);
-                            if (success) errorCount = 0; else errorCount++;
+                            if (documentVisible) await fetchData(false, true);
                             nextSync(); 
-                        }, baseDelay + jitter + backoff);
+                        }, baseDelay + jitter);
                     };
                     nextSync();
                 };
 
-                const stopAutoSync = () => { 
-                    if (fetchTimerId) { clearTimeout(fetchTimerId); fetchTimerId = null; } 
-                };
+                const stopAutoSync = () => { if (fetchTimerId) { clearTimeout(fetchTimerId); fetchTimerId = null; } };
 
-                /**
-                 * 認証処理を実行し、結果をLocal Storageへ永続化。
-                 */
+                // Page Visibility API で非アクティブ時の通信をカット
+                document.addEventListener('visibilitychange', () => {
+                    documentVisible = document.visibilityState === 'visible';
+                    if (documentVisible && user.value) {
+                        fetchData(false, true); // 戻ってきたら即座に裏で同期
+                        startAutoSync();
+                    } else {
+                        stopAutoSync();
+                    }
+                });
+
                 const doLogin = async () => {
-                    globalLoading.value = true; loadingMessage.value = 'VERIFYING...';
+                    globalLoading.value = true; loadingMessage.value = '認証中...';
                     try {
                         const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'check_auth', userId: loginForm.value.id, password: loginForm.value.password }) });
                         const data = await res.json();
@@ -440,94 +587,115 @@
                             user.value = data.user; 
                             localStorage.setItem('skid_vfinal_user', JSON.stringify({ ...data.user, password: loginForm.value.password })); 
                             startAutoSync(); 
+                            showToast(`ようこそ、${user.value.name}さん`);
                         } else { 
-                            Swal.fire('Login Failed', 'IDまたはパスワードが違います', 'error'); 
+                            showToast('IDまたはパスワードが違います', 'error'); 
                         }
-                    } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; }
+                    } catch (e) { showToast(e.message, 'error'); } finally { globalLoading.value = false; }
                 };
                 
-                const logout = () => { 
-                    user.value = null; 
-                    localStorage.removeItem('skid_vfinal_user'); 
-                    loginForm.value = { floor: '', id: '', password: '' }; 
-                    stopAutoSync(); 
-                };
+                const logout = () => { user.value = null; localStorage.removeItem('skid_vfinal_user'); loginForm.value = { floor: '', id: '', password: '' }; stopAutoSync(); };
                 
-                /**
-                 * 割り当てられたミッションを完了とするリクエストを送信。
-                 * 多重送信防止のロック機構を備える。
-                 */
+                // --- 通信の最適化: 楽観的UI更新 (Optimistic Update) ---
                 const completeMission = async (mission) => {
                     if (processingMissions.has(mission.rowIndex)) return;
-                    const text = `${mission.amount}個の移動を完了しましたか？`;
-                    const confirm = await Swal.fire({ title: '確認', text: text, icon: 'question', showCancelButton: true, confirmButtonColor:'#4f46e5' });
-                    if(confirm.isConfirmed) {
-                        // 通信開始と同時にボタンをDisabled化
+                    const isConfirmed = await showConfirm('タスク完了', `${mission.item} ${mission.amount}個の移動を完了しましたか？\n（取り消しはできません）`, '完了する');
+                    if(isConfirmed) {
                         processingMissions.add(mission.rowIndex);
                         try {
                             const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'complete_movement', rowIndex: mission.rowIndex, missionId: mission.id, userId: user.value.id, password: getStoredPassword() }) });
                             const data = await res.json();
                             if (data.status === 'success') { 
-                                Swal.fire({ icon: 'success', title: '完了', timer: 1000, showConfirmButton: false }); 
-                                await fetchData(true, true); 
+                                showToast('完了を記録しました');
+                                
+                                // 【重要】通信を減らすため、再フェッチせずにローカルのデータを直接更新する
+                                const m = movements.value.find(x => x.rowIndex === mission.rowIndex);
+                                if (m) m.status = '済';
+                                
+                                const fromRoom = rooms.value.find(r => String(r.id) === String(mission.from));
+                                const toRoom = rooms.value.find(r => String(r.id) === String(mission.to));
+                                if (fromRoom && fromRoom.items[mission.item]) fromRoom.items[mission.item].current -= mission.amount;
+                                if (toRoom && toRoom.items[mission.item]) toRoom.items[mission.item].current += mission.amount;
+
+                                // ※ここで await fetchData(true, true) を呼ばないことで、APIリクエストを半減！
                             } else { throw new Error(data.message); }
-                        } catch (e) { 
-                            Swal.fire('Error', e.message, 'error'); 
-                        } finally { 
-                            processingMissions.delete(mission.rowIndex); 
-                        }
+                        } catch (e) { showToast(e.message, 'error'); } finally { processingMissions.delete(mission.rowIndex); }
                     }
                 };
 
-                const openDirectEdit = (room) => { 
-                    if(!room) return; 
-                    editTargetRoom.value = room; 
-                    editForm.value = {}; 
-                    items.value.forEach(key => editForm.value[key] = room.items[key] ? room.items[key].current : 0); 
-                    showEditModal.value = true; 
-                };
+                const openDirectEdit = (room) => { if(!room) return; editTargetRoom.value = room; editForm.value = {}; items.value.forEach(key => editForm.value[key] = room.items[key] ? room.items[key].current : 0); showEditModal.value = true; };
                 
                 const submitEdit = async () => { 
-                    if (!confirm('在庫数を直接上書きします。よろしいですか？')) return; 
-                    globalLoading.value = true; 
+                    const isConfirmed = await showConfirm('手動修正', '在庫数を直接上書きします。よろしいですか？', '保存する');
+                    if (!isConfirmed) return; 
+                    
+                    globalLoading.value = true; loadingMessage.value = '保存中...';
                     try { 
                         const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'direct_update', roomId: editTargetRoom.value.id, updates: editForm.value, userId: user.value.id, password: getStoredPassword() }) }); 
-                        if ((await res.json()).status === 'success') { showEditModal.value = false; Swal.fire('修正完了', '', 'success'); fetchData(true); } 
-                    } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; } 
+                        if ((await res.json()).status === 'success') { 
+                            showEditModal.value = false; 
+                            showToast('在庫を修正しました'); 
+                            // 手動修正など全体に影響するものは確実性優先でフェッチする
+                            fetchData(true); 
+                        } 
+                    } catch (e) { showToast(e.message, 'error'); } finally { globalLoading.value = false; } 
                 };
                 
                 const changeTerm = async (targetFloor, newTerm) => { 
-                    if (!confirm(`${targetFloor} の進行を ${newTerm} に変更しますか？`)) return; 
+                    const isConfirmed = await showConfirm('フェーズ変更', `${targetFloor}の進行を${newTerm}に変更しますか？`, '変更する');
+                    if (!isConfirmed) return; 
+                    
                     globalLoading.value = true; 
                     try { 
                         const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'change_term', targetFloor: targetFloor, newTerm: newTerm, userId: user.value.id, password: getStoredPassword() }) }); 
-                        if ((await res.json()).status === 'success') { Swal.fire('変更完了', '', 'success'); fetchData(true); } 
-                    } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; } 
+                        if ((await res.json()).status === 'success') { 
+                            showToast('フェーズを変更しました'); 
+                            fetchData(true); 
+                        } 
+                    } catch (e) { showToast(e.message, 'error'); } finally { globalLoading.value = false; } 
                 };
                 
-                /**
-                 * ミッションの自動生成をサーバーへ要求する (SuperAdminのみ実行可能)
-                 */
                 const generateMissions = async (mode) => {
-                    const modeText = mode === 'setup' ? '準備用 (開始時➜終了時)' : '復元用 (終了時➜開始時)';
-                    const confirm = await Swal.fire({ title: '自動生成を実行しますか？', text: `現在のMovementsシートの指示はすべて消去され、${modeText}の指示で上書きされます。`, icon: 'warning', showCancelButton: true, confirmButtonColor:'#d33' });
-                    if(confirm.isConfirmed) {
-                        globalLoading.value = true; loadingMessage.value = 'GENERATING...';
+                    const modeText = mode === 'setup' ? '準備用' : '復元用';
+                    const isConfirmed = await showConfirm('指示の再生成', `現在の指示はすべて消去され、${modeText}の指示で上書きされます。\n実行しますか？`, '生成する');
+                    
+                    if(isConfirmed) {
+                        globalLoading.value = true; loadingMessage.value = '生成中...';
                         try {
                             const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'generate_movements', mode: mode, userId: user.value.id, password: getStoredPassword() }) });
                             const data = await res.json();
-                            if (data.status === 'success') { Swal.fire('生成完了', data.message, 'success'); fetchData(true); } else { throw new Error(data.message); }
-                        } catch (e) { Swal.fire('Error', e.message, 'error'); } finally { globalLoading.value = false; }
+                            if (data.status === 'success') { 
+                                showToast('新しい指示を生成しました'); 
+                                fetchData(true); 
+                            } else { throw new Error(data.message); }
+                        } catch (e) { showToast(e.message, 'error'); } finally { globalLoading.value = false; }
                     }
                 };
 
                 const getStoredPassword = () => { try { return JSON.parse(localStorage.getItem('skid_vfinal_user')).password; } catch(e) { return ''; } };
                 const getRoomName = (id) => { const r = displayRooms.value.find(r => String(r.id) === String(id)); return r ? r.name : id; };
                 const getFloorSummary = (rooms) => { const sum = {}; rooms.forEach(r => { Object.keys(r.items).forEach(k => { if(!sum[k]) sum[k] = {diff:0}; sum[k].diff += r.items[k].diff; }); }); return sum; };
-                const getItemStatusClass = (diff) => { if (diff < 0) return 'bg-rose-50 border-rose-200 text-rose-800'; if (diff > 0) return 'bg-amber-50 border-amber-200 text-amber-800'; return 'bg-white border-slate-100 text-slate-600'; };
-                const getRoomStatusColor = (room) => { let hasDeficit = false, hasSurplus = false; Object.values(room.items).forEach(i => { if(i.diff < 0) hasDeficit = true; if(i.diff > 0) hasSurplus = true; }); if (hasDeficit) return 'border-l-4 border-l-rose-500'; if (hasSurplus) return 'border-l-4 border-l-amber-500'; return 'border-l-4 border-l-emerald-500'; };
+                
+                // --- デザイン変更: 枠線と淡い発光（フォーカスリング）で状態を表現 ---
+                const getRoomStatusBg = (room) => { 
+                    let hasDeficit = false, hasSurplus = false; 
+                    Object.values(room.items).forEach(i => { if(i.diff < 0) hasDeficit = true; if(i.diff > 0) hasSurplus = true; }); 
+                    
+                    // 赤色（不足）: ボーダー2px + フォーカスリング + ほんのり影
+                    if (hasDeficit) return 'border-2 border-red-500 shadow-[0_4px_20px_rgba(239,68,68,0.15)] ring-4 ring-red-500/10 z-10'; 
+                    // オレンジ色（過剰）: ボーダー2px + フォーカスリング + ほんのり影
+                    if (hasSurplus) return 'border-2 border-orange-500 shadow-[0_4px_20px_rgba(249,115,22,0.15)] ring-4 ring-orange-500/10 z-10'; 
+                    // 正常（白・グレー枠）
+                    return 'border border-gray-200/60'; 
+                };
 
-                // ライフサイクルフック
+                // 個人インベントリのカード用デザイン
+                const getItemStatusBg = (diff) => {
+                    if (diff < 0) return 'border-2 border-red-500 shadow-[0_4px_15px_rgba(239,68,68,0.1)]'; 
+                    if (diff > 0) return 'border-2 border-orange-500 shadow-[0_4px_15px_rgba(249,115,22,0.1)]'; 
+                    return 'border border-gray-200/60'; 
+                };
+
                 onMounted(async () => { 
                     const stored = localStorage.getItem('skid_vfinal_user'); 
                     if (stored) { 
@@ -542,13 +710,13 @@
                 
                 onUnmounted(() => { stopAutoSync(); });
 
-                // テンプレートへ公開
                 return {
                     globalLoading, loadingMessage, config, user, loginForm, rooms: displayRooms, myMissions, myRoom, 
                     floorList, roomsInSelectedFloor, canLogin, currentTerm, isAdmin, adminVisibleFloors, groupedAdminRooms,
                     showEditModal, editTargetRoom, editForm, searchQuery, filterStatus, processingMissions, viewTargetModes,
+                    toast, dialog,
                     fetchData, doLogin, logout, completeMission, openDirectEdit, submitEdit, changeTerm, generateMissions,
-                    getRoomName, getItemStatusClass, getRoomStatusColor, getFloorSummary
+                    getRoomName, getRoomStatusBg, getItemStatusBg, getFloorSummary
                 };
             }
         }).mount('#app');
