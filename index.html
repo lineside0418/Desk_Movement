@@ -6,6 +6,7 @@
     <title>机移動システム</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         :root {
             --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -23,27 +24,20 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Bento UI */
         .bento-card {
             background: #FFFFFF;
             border-radius: 24px;
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
             transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border 0.2s ease;
         }
-        .bento-card:hover {
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
-        }
+        .bento-card:hover { box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08); }
 
-        /* アニメーション */
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
-        
         .slide-up-enter-active, .slide-up-leave-active { transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
         .slide-up-enter-from, .slide-up-leave-to { transform: translateY(20px); opacity: 0; }
-
         .toast-enter-active, .toast-leave-active { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .toast-enter-from, .toast-leave-to { transform: translateY(-20px) scale(0.95); opacity: 0; }
-
         .item-complete-enter-active, .item-complete-leave-active { transition: all 0.4s ease; }
         .item-complete-leave-to { opacity: 0; transform: scale(0.9); }
 
@@ -126,48 +120,15 @@
                     <p class="text-xs font-semibold text-[#86868B] tracking-widest uppercase">Asset Command</p>
                 </div>
 
-                <div class="bg-white/60 backdrop-blur-2xl rounded-[32px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white space-y-6">
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-[#86868B] uppercase tracking-wider ml-2">1. Floor</label>
-                        <div class="relative">
-                            <select v-model="loginForm.floor" class="w-full bg-[#F5F5F7]/80 border border-transparent rounded-2xl px-5 py-4 text-sm font-semibold text-[#1D1D1F] outline-none focus:bg-white focus:ring-2 focus:ring-[#007AFF]/20 transition-all appearance-none cursor-pointer">
-                                <option value="" disabled>フロアを選択してください</option>
-                                <option v-for="f in floorList" :key="f" :value="f">{{ f }}</option>
-                                <option value="All">SYSTEM ADMIN</option>
-                            </select>
-                            <div class="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[#86868B]">
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                            </div>
-                        </div>
+                <div class="bg-white/60 backdrop-blur-2xl rounded-[32px] p-8 shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white flex flex-col items-center justify-center text-center space-y-6">
+                    <div class="w-16 h-16 bg-[#F5F5F7] rounded-full flex items-center justify-center mb-2">
+                        <svg class="w-8 h-8 text-[#1D1D1F]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
                     </div>
-
-                    <transition name="slide-up">
-                        <div v-if="loginForm.floor" class="space-y-2">
-                            <label class="text-[10px] font-bold text-[#86868B] uppercase tracking-wider ml-2">2. Room</label>
-                            <div class="relative">
-                                <select v-model="loginForm.id" class="w-full bg-[#F5F5F7]/80 border border-transparent rounded-2xl px-5 py-4 text-sm font-semibold text-[#1D1D1F] outline-none focus:bg-white focus:ring-2 focus:ring-[#007AFF]/20 transition-all appearance-none cursor-pointer">
-                                    <option value="" disabled>アカウントを選択してください</option>
-                                    <option v-for="r in roomsInSelectedFloor" :key="r.id" :value="r.id">{{ r.name }}</option>
-                                </select>
-                                <div class="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[#86868B]">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                                </div>
-                            </div>
-                        </div>
-                    </transition>
-
-                    <transition name="slide-up">
-                        <div v-if="loginForm.id" class="space-y-2">
-                            <label class="text-[10px] font-bold text-[#86868B] uppercase tracking-wider ml-2">3. Password</label>
-                            <input type="password" v-model="loginForm.password" placeholder="パスワードを入力" class="w-full bg-[#F5F5F7]/80 border border-transparent rounded-2xl px-5 py-4 text-sm font-semibold text-[#1D1D1F] outline-none focus:bg-white focus:ring-2 focus:ring-[#007AFF]/20 transition-all">
-                        </div>
-                    </transition>
-
-                    <transition name="slide-up">
-                        <button v-if="loginForm.id" @click="doLogin" :disabled="!canLogin" class="w-full bg-[#1D1D1F] text-white font-semibold py-4 rounded-2xl hover:bg-black disabled:opacity-50 disabled:hover:bg-[#1D1D1F] transition-all active:scale-[0.98] mt-2 shadow-lg shadow-black/5">
-                            接続する
-                        </button>
-                    </transition>
+                    <div>
+                        <h2 class="text-lg font-bold text-[#1D1D1F] mb-1">アカウント認証</h2>
+                        <p class="text-xs text-[#86868B] font-medium leading-relaxed">学校のアカウントを使用してログインしてください。</p>
+                    </div>
+                    <div id="google-btn" class="w-full flex justify-center mt-4"></div>
                 </div>
             </div>
         </div>
@@ -184,7 +145,7 @@
                             <span class="font-semibold text-[#1D1D1F] text-sm leading-tight">{{ user.name }}</span>
                             <span class="text-[10px] text-[#86868B] font-medium tracking-wide">
                                 <span v-if="!isAdmin">{{ user.floor }} • {{ currentTerm }}</span>
-                                <span v-else class="text-red-500">{{ user.role }}</span>
+                                <span v-else class="text-red-500">{{ user.role }} <span v-if="config.currentMode === 'teardown'">(復元モード)</span></span>
                             </span>
                         </div>
                     </div>
@@ -429,11 +390,12 @@
     </div>
 
     <script>
-        const { createApp, ref, reactive, computed, onMounted, onUnmounted } = Vue;
+        const { createApp, ref, reactive, computed, onMounted, onUnmounted, nextTick } = Vue;
         
         createApp({
             setup() {
-                const API_URL = 'https://script.google.com/macros/s/AKfycbxdMcWEiXSkZ2HYiCkLAu5pxOz8FoX9xZUuqCIquuiWJrdKwvFUg_JYTr7aCGcUPAkB/exec';
+                const API_URL = 'https://script.google.com/macros/s/AKfycbzG43jYfCGW-88pbYuHzy8DI6HPRCnaTG6FDZXSa-w7Wdywcz5D7A1JaQk7GNIRCWwC/exec'; 
+                const GOOGLE_CLIENT_ID = '704625236424-2jkp5omo2fdioo15529q2fi7tluu32p1.apps.googleusercontent.com'; 
                 
                 const globalLoading = ref(true);
                 const loadingMessage = ref('接続中...');
@@ -441,10 +403,9 @@
 
                 const rooms = ref([]);
                 const movements = ref([]);
-                const config = ref({ notice: '', targetMode: '終了時', floors: {} });
+                const config = ref({ notice: '', targetMode: '終了時', currentMode: 'setup', floors: {} });
                 const items = ref([]);
                 const user = ref(null);
-                const loginForm = ref({ floor: '', id: '', password: '' });
                 const showEditModal = ref(false);
                 const editTargetRoom = ref(null);
                 const editForm = ref({});
@@ -453,10 +414,9 @@
                 const viewTargetModes = reactive({});
                 
                 let fetchTimerId = null;
-                let isFetching = false; // 重複fetch防止フラグ
-                let documentVisible = true; // タブ状態のトラッキング
+                let isFetching = false; 
+                let documentVisible = true; 
 
-                // カスタムUI
                 const toast = reactive({ show: false, message: '', type: 'success' });
                 const showToast = (msg, type = 'success', duration = 3000) => {
                     toast.message = msg; toast.type = type; toast.show = true;
@@ -473,8 +433,6 @@
                 };
 
                 const floorList = computed(() => { const floors = new Set(rooms.value.map(r => r.floor).filter(f => f)); return Array.from(floors).sort(); });
-                const roomsInSelectedFloor = computed(() => { if (loginForm.value.floor === 'All') return [{ id: 'Admin', name: 'SYSTEM ADMIN' }]; return rooms.value.filter(r => r.floor === loginForm.value.floor); });
-                const canLogin = computed(() => loginForm.value.floor && loginForm.value.id && loginForm.value.password);
                 const isAdmin = computed(() => user.value && (user.value.role === 'FloorAdmin' || user.value.role === 'SuperAdmin'));
                 const currentTerm = computed(() => { if (!user.value) return ''; if (user.value.floor === 'All') return 'ADMIN VIEW'; return (config.value && config.value.floors && config.value.floors[user.value.floor]) || 'Unknown'; });
 
@@ -531,9 +489,8 @@
                     return Object.keys(groups).sort().reduce((obj, key) => { obj[key] = groups[key]; return obj; }, {});
                 });
 
-                // --- 通信の最適化: フェッチ ---
                 const fetchData = async (force = false, background = false) => {
-                    if (isFetching || (!documentVisible && background)) return false; // 重複・バックグラウンド待機時はブロック
+                    if (isFetching || (!documentVisible && background)) return false;
                     isFetching = true;
                     if (!background) { globalLoading.value = true; loadingMessage.value = '同期中...'; }
                     try {
@@ -542,7 +499,7 @@
                         if (data.status === 'success') {
                             rooms.value = data.rooms || [];
                             movements.value = data.movements || [];
-                            config.value = data.config || { notice: '', targetMode: '終了時', floors: {} };
+                            config.value = data.config || { notice: '', targetMode: '終了時', currentMode: 'setup', floors: {} };
                             items.value = data.items || [];
                             return true; 
                         }
@@ -550,13 +507,12 @@
                     finally { globalLoading.value = false; isFetching = false; }
                 };
 
-                // --- 通信の最適化: ポーリング管理 ---
                 const startAutoSync = () => {
                     if (fetchTimerId) clearTimeout(fetchTimerId);
                     if (!user.value) return;
                     const nextSync = () => {
-                        const baseDelay = 35000; // API制限対策：ベース間隔を長め（35秒）に設定
-                        const jitter = Math.random() * 10000; // 負荷分散：＋0〜10秒のランダム遅延
+                        const baseDelay = 35000; 
+                        const jitter = Math.random() * 10000; 
                         fetchTimerId = setTimeout(async () => {
                             if (documentVisible) await fetchData(false, true);
                             nextSync(); 
@@ -567,57 +523,98 @@
 
                 const stopAutoSync = () => { if (fetchTimerId) { clearTimeout(fetchTimerId); fetchTimerId = null; } };
 
-                // Page Visibility API で非アクティブ時の通信をカット
                 document.addEventListener('visibilitychange', () => {
                     documentVisible = document.visibilityState === 'visible';
                     if (documentVisible && user.value) {
-                        fetchData(false, true); // 戻ってきたら即座に裏で同期
+                        fetchData(false, true); 
                         startAutoSync();
                     } else {
                         stopAutoSync();
                     }
                 });
 
-                const doLogin = async () => {
+                const handleCredentialResponse = async (response) => {
                     globalLoading.value = true; loadingMessage.value = '認証中...';
                     try {
-                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'check_auth', userId: loginForm.value.id, password: loginForm.value.password }) });
+                        const token = response.credential;
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        const email = payload.email;
+
+                        const res = await fetch(API_URL, { 
+                            method: 'POST', 
+                            credentials: 'omit', 
+                            body: JSON.stringify({ action: 'check_auth', email: email }) 
+                        });
                         const data = await res.json();
                         if (data.status === 'success' && data.user) { 
-                            user.value = data.user; 
-                            localStorage.setItem('skid_vfinal_user', JSON.stringify({ ...data.user, password: loginForm.value.password })); 
+                            user.value = { ...data.user, email: email }; 
+                            localStorage.setItem('skid_vfinal_user', JSON.stringify(user.value)); 
                             startAutoSync(); 
                             showToast(`ようこそ、${user.value.name}さん`);
                         } else { 
-                            showToast('IDまたはパスワードが違います', 'error'); 
+                            showToast(data.message || '登録されていないアカウントです', 'error'); 
+                            if (window.google) google.accounts.id.disableAutoSelect();
                         }
-                    } catch (e) { showToast(e.message, 'error'); } finally { globalLoading.value = false; }
+                    } catch (e) { 
+                        showToast('ログインに失敗しました', 'error'); 
+                        if (window.google) google.accounts.id.disableAutoSelect();
+                    } finally { 
+                        globalLoading.value = false; 
+                    }
+                };
+
+                const renderGoogleButton = () => {
+                    if (window.google && !user.value) {
+                        google.accounts.id.initialize({
+                            client_id: GOOGLE_CLIENT_ID,
+                            callback: handleCredentialResponse,
+                            auto_select: false,
+                            ux_mode: 'popup'
+                        });
+                        google.accounts.id.renderButton(
+                            document.getElementById("google-btn"),
+                            { theme: "outline", size: "large", type: "standard", shape: "pill" }
+                        );
+                    }
                 };
                 
-                const logout = () => { user.value = null; localStorage.removeItem('skid_vfinal_user'); loginForm.value = { floor: '', id: '', password: '' }; stopAutoSync(); };
+                const logout = () => { 
+                    user.value = null; 
+                    localStorage.removeItem('skid_vfinal_user'); 
+                    stopAutoSync(); 
+                    if (window.google) google.accounts.id.disableAutoSelect();
+                    nextTick(() => { renderGoogleButton(); });
+                };
                 
-                // --- 通信の最適化: 楽観的UI更新 (Optimistic Update) ---
                 const completeMission = async (mission) => {
                     if (processingMissions.has(mission.rowIndex)) return;
                     const isConfirmed = await showConfirm('タスク完了', `${mission.item} ${mission.amount}個の移動を完了しましたか？\n（取り消しはできません）`, '完了する');
                     if(isConfirmed) {
                         processingMissions.add(mission.rowIndex);
                         try {
-                            const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'complete_movement', rowIndex: mission.rowIndex, missionId: mission.id, userId: user.value.id, password: getStoredPassword() }) });
+                            const res = await fetch(API_URL, { 
+                                method: 'POST', 
+                                credentials: 'omit', 
+                                body: JSON.stringify({ 
+                                    action: 'complete_movement', 
+                                    rowIndex: mission.rowIndex, 
+                                    missionId: mission.id, 
+                                    fromId: mission.from, 
+                                    toId: mission.to, 
+                                    item: mission.item, 
+                                    amount: mission.amount,
+                                    email: user.value.email
+                                }) 
+                            });
                             const data = await res.json();
                             if (data.status === 'success') { 
                                 showToast('完了を記録しました');
-                                
-                                // 【重要】通信を減らすため、再フェッチせずにローカルのデータを直接更新する
                                 const m = movements.value.find(x => x.rowIndex === mission.rowIndex);
                                 if (m) m.status = '済';
-                                
                                 const fromRoom = rooms.value.find(r => String(r.id) === String(mission.from));
                                 const toRoom = rooms.value.find(r => String(r.id) === String(mission.to));
                                 if (fromRoom && fromRoom.items[mission.item]) fromRoom.items[mission.item].current -= mission.amount;
                                 if (toRoom && toRoom.items[mission.item]) toRoom.items[mission.item].current += mission.amount;
-
-                                // ※ここで await fetchData(true, true) を呼ばないことで、APIリクエストを半減！
                             } else { throw new Error(data.message); }
                         } catch (e) { showToast(e.message, 'error'); } finally { processingMissions.delete(mission.rowIndex); }
                     }
@@ -628,41 +625,40 @@
                 const submitEdit = async () => { 
                     const isConfirmed = await showConfirm('手動修正', '在庫数を直接上書きします。よろしいですか？', '保存する');
                     if (!isConfirmed) return; 
-                    
                     globalLoading.value = true; loadingMessage.value = '保存中...';
                     try { 
-                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'direct_update', roomId: editTargetRoom.value.id, updates: editForm.value, userId: user.value.id, password: getStoredPassword() }) }); 
+                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'direct_update', roomId: editTargetRoom.value.id, updates: editForm.value, email: user.value.email }) }); 
                         if ((await res.json()).status === 'success') { 
                             showEditModal.value = false; 
                             showToast('在庫を修正しました'); 
-                            // 手動修正など全体に影響するものは確実性優先でフェッチする
                             fetchData(true); 
                         } 
                     } catch (e) { showToast(e.message, 'error'); } finally { globalLoading.value = false; } 
                 };
                 
                 const changeTerm = async (targetFloor, newTerm) => { 
-                    const isConfirmed = await showConfirm('フェーズ変更', `${targetFloor}の進行を${newTerm}に変更しますか？`, '変更する');
+                    const isConfirmed = await showConfirm('フェーズ変更', `${targetFloor}の進行を${newTerm}に変更しますか？\n（未完了の教室がある場合は変更できません）`, '変更する');
                     if (!isConfirmed) return; 
-                    
                     globalLoading.value = true; 
                     try { 
-                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'change_term', targetFloor: targetFloor, newTerm: newTerm, userId: user.value.id, password: getStoredPassword() }) }); 
-                        if ((await res.json()).status === 'success') { 
+                        const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'change_term', targetFloor: targetFloor, newTerm: newTerm, email: user.value.email }) }); 
+                        const data = await res.json();
+                        if (data.status === 'success') { 
                             showToast('フェーズを変更しました'); 
                             fetchData(true); 
-                        } 
+                        } else {
+                            throw new Error(data.message);
+                        }
                     } catch (e) { showToast(e.message, 'error'); } finally { globalLoading.value = false; } 
                 };
                 
                 const generateMissions = async (mode) => {
                     const modeText = mode === 'setup' ? '準備用' : '復元用';
                     const isConfirmed = await showConfirm('指示の再生成', `現在の指示はすべて消去され、${modeText}の指示で上書きされます。\n実行しますか？`, '生成する');
-                    
                     if(isConfirmed) {
                         globalLoading.value = true; loadingMessage.value = '生成中...';
                         try {
-                            const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'generate_movements', mode: mode, userId: user.value.id, password: getStoredPassword() }) });
+                            const res = await fetch(API_URL, { method: 'POST', credentials: 'omit', body: JSON.stringify({ action: 'generate_movements', mode: mode, email: user.value.email }) });
                             const data = await res.json();
                             if (data.status === 'success') { 
                                 showToast('新しい指示を生成しました'); 
@@ -672,24 +668,17 @@
                     }
                 };
 
-                const getStoredPassword = () => { try { return JSON.parse(localStorage.getItem('skid_vfinal_user')).password; } catch(e) { return ''; } };
                 const getRoomName = (id) => { const r = displayRooms.value.find(r => String(r.id) === String(id)); return r ? r.name : id; };
                 const getFloorSummary = (rooms) => { const sum = {}; rooms.forEach(r => { Object.keys(r.items).forEach(k => { if(!sum[k]) sum[k] = {diff:0}; sum[k].diff += r.items[k].diff; }); }); return sum; };
                 
-                // --- デザイン変更: 枠線と淡い発光（フォーカスリング）で状態を表現 ---
                 const getRoomStatusBg = (room) => { 
                     let hasDeficit = false, hasSurplus = false; 
                     Object.values(room.items).forEach(i => { if(i.diff < 0) hasDeficit = true; if(i.diff > 0) hasSurplus = true; }); 
-                    
-                    // 赤色（不足）: ボーダー2px + フォーカスリング + ほんのり影
                     if (hasDeficit) return 'border-2 border-red-500 shadow-[0_4px_20px_rgba(239,68,68,0.15)] ring-4 ring-red-500/10 z-10'; 
-                    // オレンジ色（過剰）: ボーダー2px + フォーカスリング + ほんのり影
                     if (hasSurplus) return 'border-2 border-orange-500 shadow-[0_4px_20px_rgba(249,115,22,0.15)] ring-4 ring-orange-500/10 z-10'; 
-                    // 正常（白・グレー枠）
                     return 'border border-gray-200/60'; 
                 };
 
-                // 個人インベントリのカード用デザイン
                 const getItemStatusBg = (diff) => {
                     if (diff < 0) return 'border-2 border-red-500 shadow-[0_4px_15px_rgba(239,68,68,0.1)]'; 
                     if (diff > 0) return 'border-2 border-orange-500 shadow-[0_4px_15px_rgba(249,115,22,0.1)]'; 
@@ -699,23 +688,21 @@
                 onMounted(async () => { 
                     const stored = localStorage.getItem('skid_vfinal_user'); 
                     if (stored) { 
-                        try { 
-                            user.value = JSON.parse(stored); 
-                            loginForm.value.password = user.value.password; 
-                            startAutoSync(); 
-                        } catch(e) {} 
-                    } 
+                        try { user.value = JSON.parse(stored); startAutoSync(); } catch(e) {} 
+                    } else {
+                        const checkGoogleScript = setInterval(() => { if(window.google) { clearInterval(checkGoogleScript); renderGoogleButton(); } }, 100);
+                    }
                     await fetchData(true); 
                 });
                 
                 onUnmounted(() => { stopAutoSync(); });
 
                 return {
-                    globalLoading, loadingMessage, config, user, loginForm, rooms: displayRooms, myMissions, myRoom, 
-                    floorList, roomsInSelectedFloor, canLogin, currentTerm, isAdmin, adminVisibleFloors, groupedAdminRooms,
+                    globalLoading, loadingMessage, config, user, rooms: displayRooms, myMissions, myRoom, 
+                    floorList, currentTerm, isAdmin, adminVisibleFloors, groupedAdminRooms,
                     showEditModal, editTargetRoom, editForm, searchQuery, filterStatus, processingMissions, viewTargetModes,
                     toast, dialog,
-                    fetchData, doLogin, logout, completeMission, openDirectEdit, submitEdit, changeTerm, generateMissions,
+                    fetchData, logout, completeMission, openDirectEdit, submitEdit, changeTerm, generateMissions,
                     getRoomName, getRoomStatusBg, getItemStatusBg, getFloorSummary
                 };
             }
