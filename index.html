@@ -98,13 +98,17 @@
         <transition name="fade">
             <div v-if="dialog.show" class="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
                 <div class="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl transform transition-all text-center">
+                    <div v-if="dialog.type === 'alert'" class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                    </div>
                     <h3 class="text-xl font-semibold text-[#1D1D1F] mb-2">{{ dialog.title }}</h3>
                     <p class="text-sm text-[#86868B] mb-6 leading-relaxed whitespace-pre-wrap">{{ dialog.text }}</p>
                     <div class="flex flex-col gap-2">
-                        <button @click="dialog.resolve(true)" class="w-full py-3.5 rounded-xl font-semibold text-white bg-[#007AFF] hover:bg-[#0066CC] active:scale-[0.98] transition">
+                        <button @click="dialog.resolve(true)" class="w-full py-3.5 rounded-xl font-semibold text-white transition active:scale-[0.98]"
+                                :class="dialog.type === 'alert' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#007AFF] hover:bg-[#0066CC]'">
                             {{ dialog.confirmText || 'OK' }}
                         </button>
-                        <button @click="dialog.resolve(false)" class="w-full py-3.5 rounded-xl font-semibold text-[#007AFF] bg-[#F5F5F7] hover:bg-[#E5E5EA] active:scale-[0.98] transition">
+                        <button v-if="dialog.type === 'confirm'" @click="dialog.resolve(false)" class="w-full py-3.5 rounded-xl font-semibold text-[#007AFF] bg-[#F5F5F7] hover:bg-[#E5E5EA] active:scale-[0.98] transition">
                             キャンセル
                         </button>
                     </div>
@@ -381,7 +385,7 @@
         </div>
 
         <transition name="slide-up">
-            <div v-if="showEditModal" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center sm:p-4 bg-black/20 backdrop-blur-sm transition-all" @click.self="showEditModal = false">
+            <div v-if="showEditModal" class="fixed inset-0 z-[160] flex items-end sm:items-center justify-center sm:p-4 bg-black/20 backdrop-blur-sm transition-all" @click.self="showEditModal = false">
                 <div class="bg-white w-full sm:max-w-sm rounded-t-[32px] sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh]">
                     <div class="p-6 flex justify-between items-center border-b border-gray-100 shrink-0">
                         <div>
@@ -427,7 +431,7 @@
         
         createApp({
             setup() {
-                const API_URL = 'https://script.google.com/macros/s/AKfycbyzQs8a8bJ8yzXH6mGcbCOq_i9BbQImliyXNMZHtPg_zAymTaQ4R5GuCxguW0bM-CVa/exec'; 
+                const API_URL = 'https://script.google.com/macros/s/AKfycbxxih8PTSQEgzZTLZLraowLFFqo9mW78e0zrKroDSWvalyoikVe2IotcPPiX8ogh4P8/exec'; 
                 const GOOGLE_CLIENT_ID = '704625236424-2jkp5omo2fdioo15529q2fi7tluu32p1.apps.googleusercontent.com'; 
                 
                 const globalLoading = ref(true);
@@ -457,10 +461,21 @@
                     setTimeout(() => { toast.show = false; }, duration);
                 };
 
-                const dialog = reactive({ show: false, title: '', text: '', confirmText: '', resolve: null });
+                const dialog = reactive({ show: false, type: 'confirm', title: '', text: '', confirmText: '', resolve: null });
+                
+                // 確認ダイアログ
                 const showConfirm = (title, text, confirmText = 'OK') => {
                     return new Promise((resolve) => {
-                        dialog.title = title; dialog.text = text; dialog.confirmText = confirmText;
+                        dialog.type = 'confirm'; dialog.title = title; dialog.text = text; dialog.confirmText = confirmText;
+                        dialog.resolve = (result) => { dialog.show = false; resolve(result); };
+                        dialog.show = true;
+                    });
+                };
+
+                // カスタムアラート
+                const showAlert = (title, text, confirmText = '閉じる') => {
+                    return new Promise((resolve) => {
+                        dialog.type = 'alert'; dialog.title = title; dialog.text = text; dialog.confirmText = confirmText;
                         dialog.resolve = (result) => { dialog.show = false; resolve(result); };
                         dialog.show = true;
                     });
@@ -533,7 +548,6 @@
                     finally { globalLoading.value = false; isFetching = false; }
                 };
 
-                // 手動更新 (5秒間のクールダウン実装)
                 const handleManualRefresh = () => {
                     if (refreshCooldown.value > 0 || globalLoading.value) return;
                     fetchData(true);
@@ -544,7 +558,6 @@
                     }, 1000);
                 };
 
-                // 自動更新 (厳密に30秒間隔)
                 let syncTimer = null;
                 const startAutoSync = () => {
                     stopAutoSync();
@@ -600,27 +613,45 @@
                 };
 
                 // --- APIアクション ---
+                
+                // [Optimistic UI] 楽観的更新を取り入れたタスク完了処理
                 const completeMission = async (mission) => {
                     if (processingMissions.has(mission.rowIndex)) return;
                     const isConfirmed = await showConfirm('タスク完了', `${mission.item} ${mission.amount}個の移動を完了しましたか？\n（取り消しはできません）`, '完了する');
-                    if(isConfirmed) {
-                        processingMissions.add(mission.rowIndex);
-                        try {
-                            const res = await fetch(API_URL, { 
-                                method: 'POST', credentials: 'omit', 
-                                body: JSON.stringify({ action: 'complete_movement', rowIndex: mission.rowIndex, email: user.value.email, item: mission.item, amount: mission.amount, fromId: mission.from, toId: mission.to }) 
-                            });
-                            const data = await res.json();
-                            if (data.status === 'success') { 
-                                showToast('完了を記録しました');
-                                const m = movements.value.find(x => x.rowIndex === mission.rowIndex);
-                                if (m) m.status = '済';
-                                const fromRoom = rooms.value.find(r => String(r.id) === String(mission.from));
-                                const toRoom = rooms.value.find(r => String(r.id) === String(mission.to));
-                                if (fromRoom && fromRoom.items[mission.item]) fromRoom.items[mission.item].current -= mission.amount;
-                                if (toRoom && toRoom.items[mission.item]) toRoom.items[mission.item].current += mission.amount;
-                            } else { throw new Error(data.message); }
-                        } catch (e) { showToast(e.message, 'error'); } finally { processingMissions.delete(mission.rowIndex); }
+                    if(!isConfirmed) return;
+
+                    processingMissions.add(mission.rowIndex);
+
+                    // オプティミスティック更新用のスナップショット
+                    const fromRoom = rooms.value.find(r => String(r.id) === String(mission.from));
+                    const toRoom = rooms.value.find(r => String(r.id) === String(mission.to));
+                    const prevFrom = fromRoom?.items?.[mission.item]?.current;
+                    const prevTo = toRoom?.items?.[mission.item]?.current;
+
+                    // UI先行更新
+                    if (fromRoom && fromRoom.items[mission.item]) fromRoom.items[mission.item].current -= mission.amount;
+                    if (toRoom && toRoom.items[mission.item]) toRoom.items[mission.item].current += mission.amount;
+
+                    const m = movements.value.find(x => x.rowIndex === mission.rowIndex);
+                    if (m) m.status = '済';
+
+                    try {
+                        const res = await fetch(API_URL, { 
+                            method: 'POST', credentials: 'omit', 
+                            body: JSON.stringify({ action: 'complete_movement', rowIndex: mission.rowIndex, email: user.value.email, item: mission.item, amount: mission.amount, fromId: mission.from, toId: mission.to }) 
+                        });
+                        const data = await res.json();
+                        if (data.status === 'success') { 
+                            showToast('完了を記録しました');
+                        } else { throw new Error(data.message); }
+                    } catch (e) { 
+                        // ロールバック
+                        if (fromRoom && fromRoom.items[mission.item] && prevFrom !== undefined) fromRoom.items[mission.item].current = prevFrom;
+                        if (toRoom && toRoom.items[mission.item] && prevTo !== undefined) toRoom.items[mission.item].current = prevTo;
+                        if (m) m.status = '未';
+                        showToast(e.message, 'error'); 
+                    } finally { 
+                        processingMissions.delete(mission.rowIndex); 
                     }
                 };
 
@@ -650,7 +681,6 @@
                     } catch (e) { showToast(e.message, 'error'); } finally { globalLoading.value = false; } 
                 };
 
-                // (新機能) 検証＆同期
                 const validateAndSync = async () => {
                     const isConfirmed = await showConfirm('検証と同期', `TargetsとMovementsの手動データを読み込み、全体の整合性を検証します。\n問題がなければ各フェーズの目標値(Term_Targets)が再計算されます。実行しますか？`, '検証して生成する');
                     if(isConfirmed) {
@@ -662,13 +692,13 @@
                                 showToast('検証完了：Term_Targetsを更新しました'); 
                                 await fetchData(true); 
                             } else { 
-                                alert(`【検証エラー】\n${data.message}`);
+                                // カスタムアラートでエラーを表示
+                                await showAlert('検証エラー', data.message, '閉じる');
                             }
                         } catch (e) { showToast(e.message, 'error'); } finally { globalLoading.value = false; }
                     }
                 };
                 
-                // (旧機能) 自動生成
                 const generateMissions = async (mode) => {
                     const modeText = mode === 'setup' ? '準備用' : '復元用';
                     const isConfirmed = await showConfirm('指示の自動生成', `現在のMovementsを消去し、システムが自動で${modeText}の指示を作成します。\n実行しますか？`, '生成する');
