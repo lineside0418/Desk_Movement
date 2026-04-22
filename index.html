@@ -649,16 +649,12 @@
 
                 const startAutoSync = () => {
                     stopAutoSync();
-                    
                     if (!user.value) return;
-
-                    // 管理者（SuperAdmin, FloorAdmin）のみ60秒間隔で自動同期
-                    if (user.value.role === 'SuperAdmin' || user.value.role === 'FloorAdmin') {
-                        syncTimer = setInterval(() => {
-                            if (documentVisible && user.value) fetchData(false, true);
-                        }, 60000);
-                    }
-                    // 一般ユーザーは自動同期しない（手動更新ボタンのみ）
+                    const role = user.value.role;
+                    if (role !== 'FloorAdmin' && role !== 'SuperAdmin') return;
+                    syncTimer = setInterval(() => {
+                        if (documentVisible && user.value) fetchData(false);
+                    }, 60000);
                 };
 
                 const stopAutoSync = () => {
@@ -672,7 +668,8 @@
                     documentVisible  = document.visibilityState === 'visible';
 
                     if (documentVisible && !wasVisible && user.value) {
-                        fetchData(false);
+                        const role = user.value.role;
+                        if (role === 'FloorAdmin' || role === 'SuperAdmin') fetchData(false);
                         startAutoSync();
                     } else if (!documentVisible) {
                         stopAutoSync();
