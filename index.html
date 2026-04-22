@@ -642,16 +642,23 @@
                 };
 
                 // -------------------------------------------------------
-                // 自動同期（30秒ごと・バックグラウンド時は停止）
+                // 自動同期（管理者のみ60秒ごと・バックグラウンド時は停止）
                 // -------------------------------------------------------
 
                 let syncTimer = null;
 
                 const startAutoSync = () => {
                     stopAutoSync();
-                    syncTimer = setInterval(() => {
-                        if (documentVisible && user.value) fetchData(false);
-                    }, 30000);
+                    
+                    if (!user.value) return;
+
+                    // 管理者（SuperAdmin, FloorAdmin）のみ60秒間隔で自動同期
+                    if (user.value.role === 'SuperAdmin' || user.value.role === 'FloorAdmin') {
+                        syncTimer = setInterval(() => {
+                            if (documentVisible && user.value) fetchData(false, true);
+                        }, 60000);
+                    }
+                    // 一般ユーザーは自動同期しない（手動更新ボタンのみ）
                 };
 
                 const stopAutoSync = () => {
